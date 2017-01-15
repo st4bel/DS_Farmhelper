@@ -16,7 +16,7 @@ var _version = "0.1";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
-var _config = {"running":"false","debug":"false","nextline":200,"nextvillage":1000};
+var _config = {"running":"false","debug":"false","walk_dir":"right","max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextvillage":1000};
 
 $(function(){
   var storage = localStorage;
@@ -30,11 +30,73 @@ $(function(){
       storage.setItem(storagePrefix+key,val);
   }
 
-  storageSet("config",storageGet("config",JSON.stringify(_config)));
+  storageSet("config",JSON.stringify(_config));//storageGet("config",JSON.stringify(_config)));
+
+  var autoRun = JSON.parse(storageGet("config")).running==="true";
   init_UI();
+  if(autoRun){
+      if(getPageAttribute("screen")=="am_farm"){
+          onFarm();
+      }
+  }
+  function onFarm(){
+    var rows = $("div.body > table tr").slice(1,-1);
+    var length = rows.length;
+    var current = -1;
+    var config = JSON.parse(storageGet("config"));
+    (function tick(){
+      if(!autoRun) {
+        add_log("Stopped");
+        return;
+      }
+      current++;
+      var row = rows[current];
+      var distance = parseInt($("td",row).eq(7).text());
+      var wall = $("td",row).eq(6).text()!="?" ? parseInt($("td",row).eq(6).text()) : 0;
+      var last_visit = $("td",row).eq(4).text().replace(/am | um /g,"").replace(/\./g,":").split(":");
+      //cancel if to far
+      if(distance<=config.max_distance||config.max_distance==-1){
 
+      }else{
+        setTimeout(function(){
+          nextvillage();
+        },percentage_randomInterval(config.nextvillage,5));
+      }
+    })();
+  }
+  function nextvillage(){
+    location.href=$("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href");
+  }
+  function isAttacked(row) {
+      return $("td:eq(3) img",row).length==1;
+  }
+  function canPress(row,name) {
+      var button=$("a.farm_icon_"+name,row);
+      return button.length==1 && !button.hasClass("farm_icon_disabled");
+  }
+  function getUnitInfo() {
+      var unitsHome=$("#units_home");
+      var units={};
 
+      $(".unit-item",unitsHome).each(function(index,obj){
+          obj=$(obj);
+          units[obj.attr("id")] = { count:parseInt(obj.text()), checked:false };
+      });
+      $("input[type=checkbox]",unitsHome).each(function(index,obj){
+          obj=$(obj);
+          units[obj.attr("name")].checked = obj.prop("checked");
+      });
 
+      return units;
+  }
+  function sumCheckedUnits(unitInfo) {
+      var sum=0;
+      for(var unitName in unitInfo) {
+          var unit=unitInfo[unitName];
+          sum += unit.checked ? unit.count : 0;
+      }
+      return sum;
+  }
   function init_UI(){
       //create UI_link
       var overview_menu = $("#overview_menu");
