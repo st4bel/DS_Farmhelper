@@ -47,7 +47,7 @@ $(function(){
       }
   }
   function onFarm(){
-    var rows = $("div.body > table tr").slice(1,-1);
+    var rows = $("div.body > table tr").slice(1);
     var length = rows.length;
     var current = -1;
     var config = JSON.parse(storageGet("config"));
@@ -56,22 +56,47 @@ $(function(){
         add_log("Stopped");
         return;
       }
-      if(unitCheck(config.primary_button)){
-        //nächstes dorf
-      }
       current++;
+      addlog("tick #"+current);
+      if(current > rows.length){
+        nextf
+      }
       var row = rows[current];
       var distance = parseInt($("td",row).eq(7).text());
       var wall = $("td",row).eq(6).text()!="?" ? parseInt($("td",row).eq(6).text()) : 0;
       var last_visit = getLastVisit(row);
       //cancel if to far
+      addlog("distance: "+distance+", if "+(distance<=config.max_distance||config.max_distance==-1));
       if(distance<=config.max_distance||config.max_distance==-1){
+        addlog("last_visit + maxlast: "+(last_visit+config.max_last_visit*1000*3600)+" Date: "+Date.now()+" if: "+(last_visit+config.max_last_visit*1000*3600>Date.now()));
         if(last_visit+config.max_last_visit*1000*3600>Date.now()){
+          addlog("isattacked? "+isAttacked());
           if(config.double_attack==="true"||!isAttacked()){
-            //attack
+            if(unitCheck(config.primary_button)&&canPress(row,config.primary_button)){
+              press(row,config.primary_button);
+              setTimeout(funtction(){
+                tick();
+              }, percentage_randomInterval(config.nextline,5));
+            }else if(unitCheck(config.secondary_button)&&canPress(row,config.secondary_button)){
+              press(row,config.secondary_button);
+              setTimeout(funtction(){
+                tick();
+              }, percentage_randomInterval(config.nextline,5));
+            }else{
+              setTimeout(function(){
+                nextvillage();
+              },percentage_randomInterval(config.nextvillage,5));
+            }
           }
+        }else if(unitCheck(config.secondary_button)){
+          press(row,config.secondary_button);
+          setTimeout(funtction(){
+            tick();
+          }, percentage_randomInterval(config.nextline,5));
         }else{
-          //secondary
+          setTimeout(function(){
+            nextvillage();
+          },percentage_randomInterval(config.nextvillage,5));
         }
       }else{
         setTimeout(function(){
@@ -98,6 +123,8 @@ $(function(){
       }
       return check;
     }
+    add_log("unitCheck: button not a/b/c, but "+button);
+    return false;
   }
   function getLastVisit(row){
     var text = $("td",row).eq(4).text();
@@ -112,6 +139,34 @@ $(function(){
     ts.setSeconds(last_visit[4]);
     return ts;
   }
+  function getPageNumber() {
+      var res=/&Farm_page=([0-9]*)&/.exec(location.search);
+      if(res==null){return 0;}
+      else return parseInt(res[1]);
+  }
+
+  //gibt die hoechste moegliche farmseite zurueck
+  function getMaxPageNumber() {
+      return $("div.body table tr:last-child a.paged-nav-item").length+1;
+  }
+
+  //wechselt zur naechsten farmseite, oder wenn noetig, zum naechsten dorf
+  function nextPage() {
+      var current=getPageNumber();
+      var total=getMaxPageNumber();
+
+      if(storageGet("max_page") != "") {
+          total = Math.min(parseInt(storageGet("max_page")) , total);
+      }
+
+      var nextVillage=false;
+      current++;
+      if(current>=total) {
+          current=0;
+          nextVillage=true;
+      }
+      location.href="/game.php?village="+(nextVillage ? storageGet("walk_dir") : "")+unsafeWindow.game_data.village.id+"&order="+storageGet("table_order")+"&dir="+storageGet("table_dir")+"&Farm_page="+current+"&screen=am_farm";
+  }
   function nextvillage(){
     location.href=$("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href");
   }
@@ -119,8 +174,11 @@ $(function(){
     return $("td:eq(3) img",row).length==1;
   }
   function canPress(row,name) {
-      var button=$("a.farm_icon_"+name,row);
-      return button.length==1 && !button.hasClass("farm_icon_disabled");
+    var button=$("a.farm_icon_"+name,row);
+    return button.length==1 && !button.hasClass("farm_icon_disabled");
+  }
+  function press(row,name) {
+    $("a.farm_icon_"+name,row).click();
   }
   function getUnitInfo() {
       var unitsHome=$("#units_home");
