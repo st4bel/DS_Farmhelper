@@ -16,8 +16,15 @@ var _version = "0.1";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
-var _config = {"running":"false","debug":"false","walk_dir":"right","max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextvillage":1000};
-
+var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextvillage":1000,"primary_button":"c","secondary_button":"a","double_attack":"false"};
+var _units = {
+    "normal":["spear","sword","axe","archer","spy","light","marcher","heavy"],
+    "no_archer":["spear","sword","axe","spy","light","heavy"]
+};
+/*
+ * Mode: c: no spy button? to old button?
+ * Mode: a/b, wenn truppen leer secondary
+ */
 $(function(){
   var storage = localStorage;
   var storagePrefix="Farm_r_";
@@ -49,14 +56,23 @@ $(function(){
         add_log("Stopped");
         return;
       }
+      if(unitCheck(config.primary_button)){
+        //nächstes dorf
+      }
       current++;
       var row = rows[current];
       var distance = parseInt($("td",row).eq(7).text());
       var wall = $("td",row).eq(6).text()!="?" ? parseInt($("td",row).eq(6).text()) : 0;
-      var last_visit = $("td",row).eq(4).text().replace(/am | um /g,"").replace(/\./g,":").split(":");
+      var last_visit = getLastVisit(row);
       //cancel if to far
       if(distance<=config.max_distance||config.max_distance==-1){
-
+        if(last_visit+config.max_last_visit*1000*3600>Date.now()){
+          if(config.double_attack==="true"||!isAttacked()){
+            //attack
+          }
+        }else{
+          //secondary
+        }
       }else{
         setTimeout(function(){
           nextvillage();
@@ -64,11 +80,43 @@ $(function(){
       }
     })();
   }
+  function unitCheck(button){
+    //returns true false
+    config = JSON.parse(storageGet("config"));
+    if(button=="c"){
+      return sumCheckedUnits(getUnitInfo())>0;
+    }else{
+      var check = true;
+      var unit_info =getUnitInfo();
+      button = button == "a" ? 0:1;
+      var table = $("form").eq(button)
+      for(var name in unit_info){
+        var thisunit = parseInt($("input[name='"+name+"']").val());
+        if(unit_info[name].count<thisunit){
+          check=false;
+        }
+      }
+      return check;
+    }
+  }
+  function getLastVisit(row){
+    var text = $("td",row).eq(4).text();
+    text.replace(/heute/,(new Date()).getDate()+"."+((new Date()).getMonth()+1)+".").replace(/gestern/,((new Date()).getDate()-1)+"."+((new Date()).getMonth()+1)+".");
+    var last_visit = text.replace(/am | um /g,"").replace(/\./g,":").split(":");
+    //heute um 14:35:00
+    var ts = new Date();
+    ts.setDate(last_visit[0]);
+    ts.setMonth(parseInt(last_visit[1])-1);
+    ts.setHours(last_visit[2]);
+    ts.setMinutes(last_visit[3]);
+    ts.setSeconds(last_visit[4]);
+    return ts;
+  }
   function nextvillage(){
     location.href=$("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href");
   }
   function isAttacked(row) {
-      return $("td:eq(3) img",row).length==1;
+    return $("td:eq(3) img",row).length==1;
   }
   function canPress(row,name) {
       var button=$("a.farm_icon_"+name,row);
