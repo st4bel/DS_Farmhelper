@@ -16,7 +16,7 @@ var _version = "0.1";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
-var _config = {"running":"false","debug":"true","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextvillage":1000,"primary_button":"c","secondary_button":"a","double_attack":"false"};
+var _config = {"running":"false","debug":"true","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextline_fast":25,"nextvillage":1000,"primary_button":"c","secondary_button":"a","double_attack":"false","max_secondary":20};
 var _units = {
     "normal":["spear","sword","axe","archer","spy","light","marcher","heavy"],
     "no_archer":["spear","sword","axe","spy","light","heavy"]
@@ -38,13 +38,13 @@ $(function(){
   }
 
   storageSet("config",storageGet("config",JSON.stringify(_config)));
+  storageSet("sec_counter",storageGet("sec_counter",0));
 
   var autoRun = JSON.parse(storageGet("config")).running==="true";
   add_log("init_UI...");
   init_UI();
   if(autoRun){
       if(getPageAttribute("screen")=="am_farm"){
-
           onFarm();
       }
   }
@@ -53,6 +53,7 @@ $(function(){
     var rows = $("div.body > table tr").slice(1);
     var current = -1;
     var config = JSON.parse(storageGet("config"));
+    var secondary_counter=storageGet("sec_counter");
     (function tick(){
       if(!autoRun) {
         add_log("Stopped");
@@ -61,47 +62,67 @@ $(function(){
       current++;
       add_log("tick #"+current);
       if(current > rows.length){
+        storageSet("sec_counter",secondary_counter);
         nextPage();
+      }
+      if(secondary_counter>config.max_secondary){
+        nextvillage();
       }
       var row = rows[current];
       var distance = parseInt($("td",row).eq(7).text());
       var wall = $("td",row).eq(6).text()!="?" ? parseInt($("td",row).eq(6).text()) : 0;
       var last_visit = getLastVisit(row);
+      add_log("last_visit "+last_visit)
       //cancel if to far
       add_log("distance: "+Math.round(distance)+", if "+(distance<=config.max_distance||config.max_distance==-1));
       if(distance<=config.max_distance||config.max_distance==-1){
+
         add_log("last_visit + maxlast: "+(last_visit+config.max_last_visit*1000*3600)+" Date: "+Date.now()+" if: "+(last_visit+config.max_last_visit*1000*3600>Date.now()));
-        if(last_visit+config.max_last_visit*1000*3600>Date.now()){
-          add_log("isattacked? "+isAttacked());
-          if(config.double_attack==="true"||!isAttacked()){
+        if(last_visit+config.max_last_visit*1000*3600>Date.now()||config.last_visit==-1){
+
+          add_log("isattacked? "+isAttacked(row));
+          if(config.double_attack==="true"||!isAttacked(row)){
+            add_log("prim: "+unitCheck(config.primary_button)+", sec: "+unitCheck(config.secondary_button))
             if(unitCheck(config.primary_button)&&canPress(row,config.primary_button)){
               press(row,config.primary_button,"green");
+              secondary_counter=0;
               setTimeout(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
             }else if(unitCheck(config.secondary_button)&&canPress(row,config.secondary_button)){
               press(row,config.secondary_button,"blue");
+              secondary_counter++;
               setTimeout(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
             }else{
               setTimeout(function(){
+                add_alert("next village / keine truppen")
                 nextvillage();
               },percentage_randomInterval(config.nextvillage,5));
             }
+          }else{
+            add_log("village under attack..")
+            setTimeout(function(){
+              $("td",row).css("background-color","red");
+              tick();
+            },percentage_randomInterval(config.nextline_fast,5));
           }
         }else if(unitCheck(config.secondary_button)){
           press(row,config.secondary_button,"orange");
+          secondary_counter++;
           setTimeout(function(){
             tick();
           },percentage_randomInterval(config.nextline,5));
         }else{
           setTimeout(function(){
+            add_alert("next village / lastvisit / keine sekundären truppen")
             nextvillage();
           },percentage_randomInterval(config.nextvillage,5));
         }
       }else{
         setTimeout(function(){
+          add_alert("next village / zu weit")
           nextvillage();
         },percentage_randomInterval(config.nextvillage,5));
       }
@@ -111,7 +132,9 @@ $(function(){
     //returns true false
     add_log("checking for available units...");
     config = JSON.parse(storageGet("config"));
-    if(button=="c"){
+    if(button==""){
+      return false;
+    }else  if(button=="c"){
       return sumCheckedUnits(getUnitInfo())>0;
     }else{
       var check = true;
@@ -119,7 +142,7 @@ $(function(){
       button = button == "a" ? 0:1;
       var table = $("form").eq(button);
       for(var name in unit_info){
-        var thisunit = parseInt($("input[name='"+name+"']").val());
+        var thisunit = parseInt($("input[name='"+name+"']",table).val());
         if(unit_info[name].count<thisunit){
           check=false;
         }
@@ -130,17 +153,18 @@ $(function(){
     return false;
   }
   function getLastVisit(row){
+    add_log("getting last visit....");
     var text = $("td",row).eq(4).text();
-    text.replace(/heute/,(new Date()).getDate()+"."+((new Date()).getMonth()+1)+".").replace(/gestern/,((new Date()).getDate()-1)+"."+((new Date()).getMonth()+1)+".");
+    var date = new Date(Date.now());
+    text = text.replace(/heute/,date.getDate()+"."+(date.getMonth()+1)+".").replace(/gestern/,(date.getDate()-1)+"."+(date.getMonth()+1)+".");
     var last_visit = text.replace(/am | um /g,"").replace(/\./g,":").split(":");
-    //heute um 14:35:00
     var ts = new Date();
     ts.setDate(last_visit[0]);
     ts.setMonth(parseInt(last_visit[1])-1);
     ts.setHours(last_visit[2]);
     ts.setMinutes(last_visit[3]);
     ts.setSeconds(last_visit[4]);
-    return ts;
+    return ts.getTime();
   }
   function getPageNumber() {
       var res=/&Farm_page=([0-9]*)&/.exec(location.search);
@@ -171,6 +195,7 @@ $(function(){
       }
   }
   function nextvillage(){
+    storageSet("sec_counter",0);
     location.href=$("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href");
   }
   function isAttacked(row) {
@@ -333,6 +358,15 @@ $(function(){
         storageSet("config",JSON.stringify(config));
       });
 
+      var input_nextline_fast = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).nextline_fast)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.nextline_fast = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
+
       var input_nextvillage = $("<input>")
       .attr("type","text")
       .val(JSON.parse(storageGet("config")).nextvillage)
@@ -348,6 +382,14 @@ $(function(){
       .on("input",function(){
         var config = JSON.parse(storageGet("config"));
         config.max_wall = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
+      var input_max_secondary = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).max_secondary)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.max_secondary = parseInt($(this).val());
         storageSet("config",JSON.stringify(config));
       });
 
@@ -371,6 +413,7 @@ $(function(){
         var config = JSON.parse(storageGet("config"));
         if($("option:selected",$(this)).val()==config.primary_button){
           alert("Secondary button may not correspond to the primary button!");
+          $("option[value="+JSON.parse(storageGet("config")).secondary_button+"]",select_secondary).prop("selected",true);
         }else{
           config.secondary_button = $("option:selected",$(this)).val();
           storageSet("config",JSON.stringify(config));
@@ -391,6 +434,7 @@ $(function(){
       var select_debug = $("<select>")
       .append($("<option>").text("Aus").attr("value","false"))
       .append($("<option>").text("An").attr("value","true"))
+      .append($("<option>").text("Keine Alerts").attr("value","no_alert"))
       .change(function(){
         var config = JSON.parse(storageGet("config"));
         config.debug = $("option:selected",$(this)).val();
@@ -415,6 +459,9 @@ $(function(){
       $("<span>").text("Pause zwischen Angriffen (in ms): "),
       input_nextline);
       addRow(
+      $("<span>").text("Pause, wenn kein Angriff geschickt wurde (in ms): "),
+      input_nextline_fast);
+      addRow(
       $("<span>").text("Pause beim Dorfwechsel (in ms): "),
       input_nextvillage);
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Angriffsmodus:"))).appendTo(settingsTable);
@@ -425,7 +472,7 @@ $(function(){
       $("<span>").text("maximale Distanz: "),
       input_max_distance);
       addRow(
-      $("<span>").text("Zeit seit letztem Angriff für primären Button: "),
+      $("<span>").text("Zeit seit letztem Angriff für primären Button in h: "),
       input_max_lastvisit);
       addRow(
       $("<span>").text("primärer Angriffsbutton: "),
@@ -433,6 +480,9 @@ $(function(){
       addRow(
       $("<span>").text("sekundärer Angriffsbutton: "),
       select_secondary);
+      addRow(
+      $("<span>").text("sekundärer Angriffsbutton nur x mal am stück benutzen, bis ins nächste dorf gewechselt wird: "),
+      input_max_secondary);
       addRow(
       $("<span>").text("derzeit attackierte Dörfer mehrfach angreifen: "),
       select_doubleattack);
@@ -465,9 +515,15 @@ $(function(){
       }
   }
   function add_log(text){
-    if(JSON.parse(storageGet("config")).debug==="true"){
+    if(JSON.parse(storageGet("config")).debug!=="false"){
       var prefix = storagePrefix+timeConverter(Date.now())+" - ";
       console.log(prefix+text);
+    }
+  }
+  function add_alert(text){
+    if(JSON.parse(storageGet("config")).debug==="true"){
+      var prefix = storagePrefix+timeConverter(Date.now())+" - ";
+      alert(prefix+text);
     }
   }
   function timeConverter(timestamp){
