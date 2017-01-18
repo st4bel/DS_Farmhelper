@@ -91,7 +91,7 @@ $(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
             }else if(unitCheck(config.notenoughtroops_button)&&canPress(row,config.notenoughtroops_button)){
-              press(row,config.secondary_button,"blue");
+              press(row,config.notenoughtroops_button,"blue");
               secondary_counter++;
               setTimeout(function(){
                 tick();
@@ -116,6 +116,9 @@ $(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
             }else{
+              if(config.notenoughtroops_button=="nextvillage"){
+                nextvillage();
+              }
               secondary_counter++;
               setTimeout(function(){
                 $("td",row).css("background-color","red");
@@ -153,11 +156,9 @@ $(function(){
     //returns true false
     add_log("checking for available units...");
     config = JSON.parse(storageGet("config"));
-    if(button==""){
-      return false;
-    }else  if(button=="c"){
+    if(button=="c"){
       return sumCheckedUnits(getUnitInfo())>0;
-    }else{
+    }else if(button=="a"||button=="b"){
       var check = true;
       var unit_info =getUnitInfo();
       button = button == "a" ? 0:1;
@@ -427,7 +428,7 @@ $(function(){
       $("option[value="+JSON.parse(storageGet("config")).primary_button+"]",select_primary).prop("selected",true);
 
       var select_notenoughtroops = $("<select>")
-      .append($("<option>").text("Keine").attr("value"," "))
+      .append($("<option>").text("Keine").attr("value","false"))
       .append($("<option>").text("A").attr("value","a"))
       .append($("<option>").text("B").attr("value","b"))
       .append($("<option>").text("C").attr("value","c"))
@@ -440,7 +441,7 @@ $(function(){
       $("option[value="+JSON.parse(storageGet("config")).notenoughtroops_button+"]",select_notenoughtroops).prop("selected",true);
 
       var select_lastvisit_button = $("<select>")
-      .append($("<option>").text("Keine").attr("value"," "))
+      .append($("<option>").text("Keine").attr("value","false"))
       .append($("<option>").text("A").attr("value","a"))
       .append($("<option>").text("B").attr("value","b"))
       .append($("<option>").text("C").attr("value","c"))
