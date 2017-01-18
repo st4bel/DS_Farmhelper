@@ -37,9 +37,10 @@ $(function(){
   function storageSet(key,val) {
       storage.setItem(storagePrefix+key,val);
   }
-
   storageSet("config",storageGet("config",JSON.stringify(_config)));
+  //storageSet("config",JSON.stringify(_config));
   storageSet("sec_counter",storageGet("sec_counter",0));
+  storageSet("templates",storageGet("templates","{}"))
 
   var autoRun = JSON.parse(storageGet("config")).running==="true";
   add_log("init_UI...");
@@ -73,7 +74,7 @@ $(function(){
       var distance = parseInt($("td",row).eq(7).text());
       var wall = $("td",row).eq(6).text()!="?" ? parseInt($("td",row).eq(6).text()) : 0;
       var last_visit = getLastVisit(row);
-      add_log("last_visit "+last_visit)
+      add_log("last_visit "+last_visit);
       //cancel if to far
       add_log("distance: "+Math.round(distance)+", if "+(distance<=config.max_distance||config.max_distance==-1));
       if(distance<=config.max_distance||config.max_distance==-1){
@@ -83,7 +84,7 @@ $(function(){
 
           add_log("isattacked? "+isAttacked(row));
           if(!isAttacked(row)){
-            add_log("prim: "+unitCheck(config.primary_button)+", sec: "+unitCheck(config.secondary_button))
+            add_log("prim: "+unitCheck(config.primary_button)+", sec: "+unitCheck(config.secondary_button));
             if(unitCheck(config.primary_button)&&canPress(row,config.primary_button)){
               press(row,config.primary_button,"green");
               secondary_counter=0;
@@ -98,7 +99,7 @@ $(function(){
               },percentage_randomInterval(config.nextline,5));
             }else{
               setTimeout(function(){
-                add_alert("next village / keine truppen")
+                add_alert("next village / keine truppen");
                 nextvillage();
               },percentage_randomInterval(config.nextvillage,5));
             }
@@ -126,7 +127,7 @@ $(function(){
               },percentage_randomInterval(config.nextline_fast,5));
             }
           }else{
-            add_log("village under attack..")
+            add_log("village under attack..");
             setTimeout(function(){
               $("td",row).css("background-color","red");
               tick();
@@ -146,7 +147,7 @@ $(function(){
         }
       }else{
         setTimeout(function(){
-          add_alert("next village / zu weit")
+          add_alert("next village / zu weit");
           nextvillage();
         },percentage_randomInterval(config.nextvillage,5));
       }
@@ -459,7 +460,7 @@ $(function(){
       .append($("<option>").text("C").attr("value","c"))
       .change(function(){
         var config = JSON.parse(storageGet("config"));
-        config.doubleattack_buttonk = $("option:selected",$(this)).val();
+        config.doubleattack_button = $("option:selected",$(this)).val();
         storageSet("config",JSON.stringify(config));
       });
       $("option[value="+JSON.parse(storageGet("config")).doubleattack_button+"]",select_doubleattack).prop("selected",true);
@@ -472,10 +473,58 @@ $(function(){
         var config = JSON.parse(storageGet("config"));
         config.debug = $("option:selected",$(this)).val();
         storageSet("config",JSON.stringify(config));
-        console.log(storageGet("config"))
+        console.log(storageGet("config"));
       });
       $("option[value="+JSON.parse(storageGet("config")).debug+"]",select_debug).prop("selected",true);
 
+      var button_create_template = $("<button>")
+      .text("Erstellen")
+      .click(function(){
+        var templates = JSON.parse(storageGet("templates"));
+        var config = JSON.parse(storageGet("config"));
+        templates[input_template_name.val()]=config;
+        templates[input_template_name.val()].running=false;
+        storageSet("templates",JSON.stringify(templates));
+        $("<option>").text(input_template_name.val()).attr("value",input_template_name.val()).appendTo(select_template);
+      })
+      var button_remove_template = $("<button>")
+      .text("Löschen")
+      .click(function(){
+        var templates = JSON.parse(storageGet("templates"));
+        if($("option:selected",select_template).val()!="false"){
+          delete templates[$("option:selected",select_template).val()];
+          storageSet("templates",JSON.stringify(templates));
+          $("option:selected",select_template).remove()
+          $("option[value=false]",select_debug).prop("selected",true);
+        }else{
+          alert("nicht löschbar..");
+        }
+      })
+      var button_take_template = $("<button>")
+      .text("Übernehmen")
+      .click(function(){
+        if($("option:selected",select_template).val()!="false"){
+          var templates = JSON.parse(storageGet("templates"));
+          config = templates[$("option:selected",select_template).val()];
+          add_log(JSON.stringify(config));
+          storageSet("config",JSON.stringify(config));
+          location.reload();
+        }else{
+          alert("Bitte Vorlage zum Übernehmne Auswählen..");
+        }
+      });
+
+      var input_template_name = $("<input>")
+      .attr("type","text")
+      .val("neuer Name")
+
+      var select_template = $("<select>")
+      .append($("<option>").text("-Auswählen-").attr("value","false"));
+
+      var templates = JSON.parse(storageGet("templates"));
+      for(var name in templates){
+        $("<option>").text(name).attr("value",name).appendTo(select_template);
+      }
 
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Allgemein:"))).appendTo(settingsTable);
       addRow(
@@ -522,8 +571,25 @@ $(function(){
       addRow(
       $("<span>").text("'Spezialbuttons' nur x mal am Stück benutzen: "),
       input_max_secondary);
-      //"primary_button":"c","lastvisit_button":"a","doubleattack_button":"a",
-      //"notenoughtroops_button":"a","cantpressprim_button":"a","double_attack":"false"
+      $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Begleitschutz Wall zerstören:"))).appendTo(settingsTable);
+
+      $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Vorlage erstellen:"))).appendTo(settingsTable);
+      addRow(
+      $("<span>").text("Name der neuen Vorlage: "),
+      input_template_name);
+      addRow(
+      $("<span>").text(""),
+      button_create_template);
+      $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Vorlagen verwalten:"))).appendTo(settingsTable);
+      addRow(
+      $("<span>").text("Vorlage Auswählen: "),
+      select_template);
+      addRow(
+      $("<span>").text("Vorlage benutzen: "),
+      button_take_template);
+      addRow(
+      $("<span>").text(""),
+      button_remove_template);
       //Foot
       $("<button>").text("Start/Stop").click(function(){
           toggleRunning();
@@ -536,6 +602,9 @@ $(function(){
       }).appendTo(settingsDiv);
       /*{"units":"no_archer",
       "primary_button":"c","secondary_button":"a","double_attack":"false"};*/
+  }
+  function changeTemplate(){
+
   }
   function toggleRunning(){
       var config = JSON.parse(storageGet("config"));
