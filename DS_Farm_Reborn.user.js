@@ -16,7 +16,7 @@ var _version = "0.1";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
-var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextvillage":1000,"primary_button":"c","secondary_button":"a","double_attack":"false"};
+var _config = {"running":"false","debug":"true","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextvillage":1000,"primary_button":"c","secondary_button":"a","double_attack":"false"};
 var _units = {
     "normal":["spear","sword","axe","archer","spy","light","marcher","heavy"],
     "no_archer":["spear","sword","axe","spy","light","heavy"]
@@ -40,15 +40,17 @@ $(function(){
   storageSet("config",JSON.stringify(_config));//storageGet("config",JSON.stringify(_config)));
 
   var autoRun = JSON.parse(storageGet("config")).running==="true";
+  addlog("init_UI...");
   init_UI();
   if(autoRun){
       if(getPageAttribute("screen")=="am_farm"){
+
           onFarm();
       }
   }
   function onFarm(){
+    addlog("onFarm...");
     var rows = $("div.body > table tr").slice(1);
-    var length = rows.length;
     var current = -1;
     var config = JSON.parse(storageGet("config"));
     (function tick(){
@@ -59,7 +61,7 @@ $(function(){
       current++;
       addlog("tick #"+current);
       if(current > rows.length){
-        nextf
+        nextPage();
       }
       var row = rows[current];
       var distance = parseInt($("td",row).eq(7).text());
@@ -74,14 +76,14 @@ $(function(){
           if(config.double_attack==="true"||!isAttacked()){
             if(unitCheck(config.primary_button)&&canPress(row,config.primary_button)){
               press(row,config.primary_button);
-              setTimeout(funtction(){
+              setTimeout(function(){
                 tick();
-              }, percentage_randomInterval(config.nextline,5));
+              },percentage_randomInterval(config.nextline,5));
             }else if(unitCheck(config.secondary_button)&&canPress(row,config.secondary_button)){
               press(row,config.secondary_button);
-              setTimeout(funtction(){
+              setTimeout(function(){
                 tick();
-              }, percentage_randomInterval(config.nextline,5));
+              },percentage_randomInterval(config.nextline,5));
             }else{
               setTimeout(function(){
                 nextvillage();
@@ -90,9 +92,9 @@ $(function(){
           }
         }else if(unitCheck(config.secondary_button)){
           press(row,config.secondary_button);
-          setTimeout(funtction(){
+          setTimeout(function(){
             tick();
-          }, percentage_randomInterval(config.nextline,5));
+          },percentage_randomInterval(config.nextline,5));
         }else{
           setTimeout(function(){
             nextvillage();
@@ -107,6 +109,7 @@ $(function(){
   }
   function unitCheck(button){
     //returns true false
+    addlog("checking for available units...");
     config = JSON.parse(storageGet("config"));
     if(button=="c"){
       return sumCheckedUnits(getUnitInfo())>0;
@@ -114,7 +117,7 @@ $(function(){
       var check = true;
       var unit_info =getUnitInfo();
       button = button == "a" ? 0:1;
-      var table = $("form").eq(button)
+      var table = $("form").eq(button);
       for(var name in unit_info){
         var thisunit = parseInt($("input[name='"+name+"']").val());
         if(unit_info[name].count<thisunit){
@@ -155,17 +158,17 @@ $(function(){
       var current=getPageNumber();
       var total=getMaxPageNumber();
 
-      if(storageGet("max_page") != "") {
-          total = Math.min(parseInt(storageGet("max_page")) , total);
+      if(JSON.parse(storageGet("config")).max_farmpage != 0) {
+          total = Math.min(JSON.parse(storageGet("config")).max_farmpage , total);
       }
-
       var nextVillage=false;
       current++;
       if(current>=total) {
-          current=0;
-          nextVillage=true;
+        current=0;
+        nextvillage();
+      }else{
+        location.href="/game.php?Farm_page="+current+"&screen=am_farm";
       }
-      location.href="/game.php?village="+(nextVillage ? storageGet("walk_dir") : "")+unsafeWindow.game_data.village.id+"&order="+storageGet("table_order")+"&dir="+storageGet("table_dir")+"&Farm_page="+current+"&screen=am_farm";
   }
   function nextvillage(){
     location.href=$("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href");
