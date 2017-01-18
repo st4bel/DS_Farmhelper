@@ -16,7 +16,8 @@ var _version = "0.1";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
-var _config = {"running":"false","debug":"true","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextline_fast":25,"nextvillage":1000,"primary_button":"c","secondary_button":"a","double_attack":"false","max_secondary":20};
+var _config = {"running":"false","debug":"true","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextline_fast":25,"nextvillage":1000,
+"primary_button":"c","lastvisit_button":"a","doubleattack_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20};
 var _units = {
     "normal":["spear","sword","axe","archer","spy","light","marcher","heavy"],
     "no_archer":["spear","sword","axe","spy","light","heavy"]
@@ -81,7 +82,7 @@ $(function(){
         if(last_visit+config.max_last_visit*1000*3600>Date.now()||config.last_visit==-1){
 
           add_log("isattacked? "+isAttacked(row));
-          if(config.double_attack==="true"||!isAttacked(row)){
+          if(!isAttacked(row)){
             add_log("prim: "+unitCheck(config.primary_button)+", sec: "+unitCheck(config.secondary_button))
             if(unitCheck(config.primary_button)&&canPress(row,config.primary_button)){
               press(row,config.primary_button,"green");
@@ -89,7 +90,7 @@ $(function(){
               setTimeout(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
-            }else if(unitCheck(config.secondary_button)&&canPress(row,config.secondary_button)){
+            }else if(unitCheck(config.notenoughtroops_button)&&canPress(row,config.notenoughtroops_button)){
               press(row,config.secondary_button,"blue");
               secondary_counter++;
               setTimeout(function(){
@@ -101,6 +102,26 @@ $(function(){
                 nextvillage();
               },percentage_randomInterval(config.nextvillage,5));
             }
+          }else if(config.double_attack!=="false"){
+            if(unitCheck(config.double_attack)&&canPress(row,config.double_attack)){
+              press(row,config.double_attack,"lime");
+              secondary_counter=0;
+              setTimeout(function(){
+                tick();
+              },percentage_randomInterval(config.nextline,5));
+            }else if(unitCheck(config.notenoughtroops_button)&&canPress(row,config.notenoughtroops_button)){
+              press(row,config.notenoughtroops_button,"blue");
+              secondary_counter++;
+              setTimeout(function(){
+                tick();
+              },percentage_randomInterval(config.nextline,5));
+            }else{
+              secondary_counter++;
+              setTimeout(function(){
+                $("td",row).css("background-color","red");
+                tick();
+              },percentage_randomInterval(config.nextline_fast,5));
+            }
           }else{
             add_log("village under attack..")
             setTimeout(function(){
@@ -108,17 +129,17 @@ $(function(){
               tick();
             },percentage_randomInterval(config.nextline_fast,5));
           }
-        }else if(unitCheck(config.secondary_button)){
-          press(row,config.secondary_button,"orange");
+        }else if(unitCheck(config.lastvisit_button)){
+          press(row,config.lastvisit_button,"orange");
           secondary_counter++;
           setTimeout(function(){
             tick();
           },percentage_randomInterval(config.nextline,5));
         }else{
           setTimeout(function(){
-            add_alert("next village / lastvisit / keine sekundären truppen")
-            nextvillage();
-          },percentage_randomInterval(config.nextvillage,5));
+            $("td",row).css("background-color","red");
+            tick();
+          },percentage_randomInterval(config.nextline,5));
         }
       }else{
         setTimeout(function(){
@@ -270,7 +291,7 @@ $(function(){
           "left":"50px",
           "top":"50px",
           "width":"500px",
-          "height":"400px",
+          "height":"600px",
           "background-color":"white",
           "border":"1px solid black",
           "border-radius":"5px",
@@ -392,7 +413,8 @@ $(function(){
         config.max_secondary = parseInt($(this).val());
         storageSet("config",JSON.stringify(config));
       });
-
+      //"primary_button":"c","lastvisit_button":"a","doubleattack_button":"a",
+      //"notenoughtroops_button":"a","cantpressprim_button":"a","double_attack":"false"
       var select_primary = $("<select>")
       .append($("<option>").text("A").attr("value","a"))
       .append($("<option>").text("B").attr("value","b"))
@@ -404,32 +426,42 @@ $(function(){
       });
       $("option[value="+JSON.parse(storageGet("config")).primary_button+"]",select_primary).prop("selected",true);
 
-      var select_secondary = $("<select>")
+      var select_notenoughtroops = $("<select>")
+      .append($("<option>").text("Keine").attr("value"," "))
+      .append($("<option>").text("A").attr("value","a"))
+      .append($("<option>").text("B").attr("value","b"))
+      .append($("<option>").text("C").attr("value","c"))
+      .append($("<option>").text("nächstes Dorf").attr("value","nextvillage"))
+      .change(function(){
+        var config = JSON.parse(storageGet("config"));
+        config.notenoughtroops_button = $("option:selected",$(this)).val();
+        storageSet("config",JSON.stringify(config));
+      });
+      $("option[value="+JSON.parse(storageGet("config")).notenoughtroops_button+"]",select_notenoughtroops).prop("selected",true);
+
+      var select_lastvisit_button = $("<select>")
       .append($("<option>").text("Keine").attr("value"," "))
       .append($("<option>").text("A").attr("value","a"))
       .append($("<option>").text("B").attr("value","b"))
       .append($("<option>").text("C").attr("value","c"))
       .change(function(){
         var config = JSON.parse(storageGet("config"));
-        if($("option:selected",$(this)).val()==config.primary_button){
-          alert("Secondary button may not correspond to the primary button!");
-          $("option[value="+JSON.parse(storageGet("config")).secondary_button+"]",select_secondary).prop("selected",true);
-        }else{
-          config.secondary_button = $("option:selected",$(this)).val();
-          storageSet("config",JSON.stringify(config));
-        }
-      });
-      $("option[value="+JSON.parse(storageGet("config")).secondary_button+"]",select_secondary).prop("selected",true);
-
-      var select_doubleattack = $("<select>")
-      .append($("<option>").text("Ja").attr("value","true"))
-      .append($("<option>").text("Nein").attr("value","false"))
-      .change(function(){
-        var config = JSON.parse(storageGet("config"));
-        config.double_attack = $("option:selected",$(this)).val();
+        config.lastvisit_button = $("option:selected",$(this)).val();
         storageSet("config",JSON.stringify(config));
       });
-      $("option[value="+JSON.parse(storageGet("config")).double_attack+"]",select_doubleattack).prop("selected",true);
+      $("option[value="+JSON.parse(storageGet("config")).lastvisit_button+"]",select_lastvisit_button).prop("selected",true);
+
+      var select_doubleattack = $("<select>")
+      .append($("<option>").text("Keine").attr("value","false"))
+      .append($("<option>").text("A").attr("value","a"))
+      .append($("<option>").text("B").attr("value","b"))
+      .append($("<option>").text("C").attr("value","c"))
+      .change(function(){
+        var config = JSON.parse(storageGet("config"));
+        config.doubleattack_buttonk = $("option:selected",$(this)).val();
+        storageSet("config",JSON.stringify(config));
+      });
+      $("option[value="+JSON.parse(storageGet("config")).doubleattack_button+"]",select_doubleattack).prop("selected",true);
 
       var select_debug = $("<select>")
       .append($("<option>").text("Aus").attr("value","false"))
@@ -478,15 +510,19 @@ $(function(){
       $("<span>").text("primärer Angriffsbutton: "),
       select_primary);
       addRow(
-      $("<span>").text("sekundärer Angriffsbutton: "),
-      select_secondary);
+      $("<span>").text("Button, falls nicht genug Truppen für primären Angriff: "),
+      select_notenoughtroops);
       addRow(
-      $("<span>").text("sekundärer Angriffsbutton nur x mal am stück benutzen, bis ins nächste dorf gewechselt wird: "),
-      input_max_secondary);
+      $("<span>").text("Button, falls letzter Besuch zu lange her: "),
+      select_lastvisit_button);
       addRow(
-      $("<span>").text("derzeit attackierte Dörfer mehrfach angreifen: "),
+      $("<span>").text("Button, falls Dorf bereits angegriffen: "),
       select_doubleattack);
-
+      addRow(
+      $("<span>").text("'Spezialbuttons' nur x mal am Stück benutzen: "),
+      input_max_secondary);
+      //"primary_button":"c","lastvisit_button":"a","doubleattack_button":"a",
+      //"notenoughtroops_button":"a","cantpressprim_button":"a","double_attack":"false"
       //Foot
       $("<button>").text("Start/Stop").click(function(){
           toggleRunning();
