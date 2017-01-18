@@ -37,10 +37,10 @@ $(function(){
       storage.setItem(storagePrefix+key,val);
   }
 
-  storageSet("config",JSON.stringify(_config));//storageGet("config",JSON.stringify(_config)));
+  storageSet("config",storageGet("config",JSON.stringify(_config)));
 
   var autoRun = JSON.parse(storageGet("config")).running==="true";
-  addlog("init_UI...");
+  add_log("init_UI...");
   init_UI();
   if(autoRun){
       if(getPageAttribute("screen")=="am_farm"){
@@ -49,7 +49,7 @@ $(function(){
       }
   }
   function onFarm(){
-    addlog("onFarm...");
+    add_log("onFarm...");
     var rows = $("div.body > table tr").slice(1);
     var current = -1;
     var config = JSON.parse(storageGet("config"));
@@ -59,7 +59,7 @@ $(function(){
         return;
       }
       current++;
-      addlog("tick #"+current);
+      add_log("tick #"+current);
       if(current > rows.length){
         nextPage();
       }
@@ -68,19 +68,19 @@ $(function(){
       var wall = $("td",row).eq(6).text()!="?" ? parseInt($("td",row).eq(6).text()) : 0;
       var last_visit = getLastVisit(row);
       //cancel if to far
-      addlog("distance: "+distance+", if "+(distance<=config.max_distance||config.max_distance==-1));
+      add_log("distance: "+Math.round(distance)+", if "+(distance<=config.max_distance||config.max_distance==-1));
       if(distance<=config.max_distance||config.max_distance==-1){
-        addlog("last_visit + maxlast: "+(last_visit+config.max_last_visit*1000*3600)+" Date: "+Date.now()+" if: "+(last_visit+config.max_last_visit*1000*3600>Date.now()));
+        add_log("last_visit + maxlast: "+(last_visit+config.max_last_visit*1000*3600)+" Date: "+Date.now()+" if: "+(last_visit+config.max_last_visit*1000*3600>Date.now()));
         if(last_visit+config.max_last_visit*1000*3600>Date.now()){
-          addlog("isattacked? "+isAttacked());
+          add_log("isattacked? "+isAttacked());
           if(config.double_attack==="true"||!isAttacked()){
             if(unitCheck(config.primary_button)&&canPress(row,config.primary_button)){
-              press(row,config.primary_button);
+              press(row,config.primary_button,"green");
               setTimeout(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
             }else if(unitCheck(config.secondary_button)&&canPress(row,config.secondary_button)){
-              press(row,config.secondary_button);
+              press(row,config.secondary_button,"blue");
               setTimeout(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
@@ -91,7 +91,7 @@ $(function(){
             }
           }
         }else if(unitCheck(config.secondary_button)){
-          press(row,config.secondary_button);
+          press(row,config.secondary_button,"orange");
           setTimeout(function(){
             tick();
           },percentage_randomInterval(config.nextline,5));
@@ -109,7 +109,7 @@ $(function(){
   }
   function unitCheck(button){
     //returns true false
-    addlog("checking for available units...");
+    add_log("checking for available units...");
     config = JSON.parse(storageGet("config"));
     if(button=="c"){
       return sumCheckedUnits(getUnitInfo())>0;
@@ -180,7 +180,8 @@ $(function(){
     var button=$("a.farm_icon_"+name,row);
     return button.length==1 && !button.hasClass("farm_icon_disabled");
   }
-  function press(row,name) {
+  function press(row,name,color) {
+    $("td",row).css("background-color",color);
     $("a.farm_icon_"+name,row).click();
   }
   function getUnitInfo() {
@@ -270,7 +271,6 @@ $(function(){
           window.open(_UpdateLink,'_blank');
       }).appendTo(settingsDiv);
       //Body
-      /*
       var settingsTable=$("<table>").appendTo(settingsDiv);
       function addRow(desc,content){
         $("<tr>")
@@ -278,49 +278,116 @@ $(function(){
         .append($("<td>").append(content))
         .appendTo(settingsTable);
       }
-      var select_units = $("<select>")
-      .append($("<option>").text("Alle").attr("value","normal"))
-      .append($("<option>").text("Alle außer Bögen").attr("value","no_archer"))
-      .append($("<option>").text("Alle außer Paladin").attr("value","no_knight"))
-      .append($("<option>").text("keine Bögen sowie Paladin").attr("value","no_archer_knight"))
+      var select_walk_dir = $("<select>")
+      .append($("<option>").text("Auf").attr("value","right"))
+      .append($("<option>").text("Ab").attr("value","left"))
       .change(function(){
         var config = JSON.parse(storageGet("config"));
-        config.units = $("option:selected",$(this)).val();
+        config.walk_dir = $("option:selected",$(this)).val();
         storageSet("config",JSON.stringify(config));
       });
-      $("option[value="+JSON.parse(storageGet("config")).units+"]",select_units).prop("selected",true);
+      $("option[value="+JSON.parse(storageGet("config")).walk_dir+"]",select_walk_dir).prop("selected",true);
 
-      var input_rereadtime = $("<input>")
+      var input_max_farmpage = $("<input>")
       .attr("type","text")
-      .val(JSON.parse(storageGet("config")).rereadtime)
+      .val(JSON.parse(storageGet("config")).max_farmpage)
       .on("input",function(){
         var config = JSON.parse(storageGet("config"));
-        if(parseInt($(this).val())>Math.ceil(config.criticaltime/30)){ // reread > 2*critical (vorsichtig)
-          config.rereadtime = parseInt($(this).val());
-          storageSet("config",JSON.stringify(config));
-        }
+        config.max_farmpage = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
       });
-      var input_criticaltime = $("<input>")
+
+      var input_max_distance = $("<input>")
       .attr("type","text")
-      .val(JSON.parse(storageGet("config")).criticaltime)
+      .val(JSON.parse(storageGet("config")).max_distance)
       .on("input",function(){
-        if(parseInt($(this).val())>0){
-          var config = JSON.parse(storageGet("config"));
-          config.criticaltime = parseInt($(this).val());
-          storageSet("config",JSON.stringify(config));
-        }
+        var config = JSON.parse(storageGet("config"));
+        config.max_distance = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
       });
-      var input_buffertime = $("<input>")
+
+      var input_max_lastvisit = $("<input>")
       .attr("type","text")
-      .val(JSON.parse(storageGet("config")).frontbuffer)
+      .val(JSON.parse(storageGet("config")).max_last_visit)
       .on("input",function(){
-        if(parseInt($(this).val())>0){
-          var config = JSON.parse(storageGet("config"));
-          config.frontbuffer = parseInt($(this).val());
-          config.backbuffer = parseInt($(this).val());
+        var config = JSON.parse(storageGet("config"));
+        config.max_last_visit = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
+
+      var input_max_wall = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).max_wall)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.max_wall = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
+
+      var input_nextline = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).nextline)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.nextline = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
+
+      var input_nextvillage = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).nextvillage)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.nextvillage = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
+
+      var input_max_wall = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).max_wall)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.max_wall = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
+
+      var select_primary = $("<select>")
+      .append($("<option>").text("A").attr("value","a"))
+      .append($("<option>").text("B").attr("value","b"))
+      .append($("<option>").text("C").attr("value","c"))
+      .change(function(){
+        var config = JSON.parse(storageGet("config"));
+        config.primary_button = $("option:selected",$(this)).val();
+        storageSet("config",JSON.stringify(config));
+      });
+      $("option[value="+JSON.parse(storageGet("config")).primary_button+"]",select_primary).prop("selected",true);
+
+      var select_secondary = $("<select>")
+      .append($("<option>").text("Keine").attr("value"," "))
+      .append($("<option>").text("A").attr("value","a"))
+      .append($("<option>").text("B").attr("value","b"))
+      .append($("<option>").text("C").attr("value","c"))
+      .change(function(){
+        var config = JSON.parse(storageGet("config"));
+        if($("option:selected",$(this)).val()==config.primary_button){
+          alert("Secondary button may not correspond to the primary button!");
+        }else{
+          config.secondary_button = $("option:selected",$(this)).val();
           storageSet("config",JSON.stringify(config));
         }
       });
+      $("option[value="+JSON.parse(storageGet("config")).secondary_button+"]",select_secondary).prop("selected",true);
+
+      var select_doubleattack = $("<select>")
+      .append($("<option>").text("Ja").attr("value","true"))
+      .append($("<option>").text("Nein").attr("value","false"))
+      .change(function(){
+        var config = JSON.parse(storageGet("config"));
+        config.double_attack = $("option:selected",$(this)).val();
+        storageSet("config",JSON.stringify(config));
+      });
+      $("option[value="+JSON.parse(storageGet("config")).double_attack+"]",select_doubleattack).prop("selected",true);
+
       var select_debug = $("<select>")
       .append($("<option>").text("Aus").attr("value","false"))
       .append($("<option>").text("An").attr("value","true"))
@@ -332,24 +399,44 @@ $(function(){
       });
       $("option[value="+JSON.parse(storageGet("config")).debug+"]",select_debug).prop("selected",true);
 
+
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Allgemein:"))).appendTo(settingsTable);
-      addRow(
-      $("<span>").text("Einheiten auf dieser Welt: "),
-      select_units);
       addRow(
       $("<span>").text("Debugmodus: "),
       select_debug);
-      $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Zeiten:"))).appendTo(settingsTable);
       addRow(
-      $("<span>").text("Die nächsten x Minuten einlesen: "),
-      input_rereadtime);
+      $("<span>").text("Dorf-Traversierung: "),
+      select_walk_dir);
       addRow(
-      $("<span>").text("Feindliche Angriffe, die weniger \nals x Sekunden entfernt sind zusammenfassen:"),
-      input_criticaltime);
+      $("<span>").text("Maximale Farmseite: "),
+      input_max_farmpage);
+      $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Pausen:"))).appendTo(settingsTable);
       addRow(
-      $("<span>").text("'Angstsekunden' (<0): "),
-      input_buffertime);
-      */
+      $("<span>").text("Pause zwischen Angriffen (in ms): "),
+      input_nextline);
+      addRow(
+      $("<span>").text("Pause beim Dorfwechsel (in ms): "),
+      input_nextvillage);
+      $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Angriffsmodus:"))).appendTo(settingsTable);
+      addRow(
+      $("<span>").text("maximaler Wall: "),
+      input_max_wall);
+      addRow(
+      $("<span>").text("maximale Distanz: "),
+      input_max_distance);
+      addRow(
+      $("<span>").text("Zeit seit letztem Angriff für primären Button: "),
+      input_max_lastvisit);
+      addRow(
+      $("<span>").text("primärer Angriffsbutton: "),
+      select_primary);
+      addRow(
+      $("<span>").text("sekundärer Angriffsbutton: "),
+      select_secondary);
+      addRow(
+      $("<span>").text("derzeit attackierte Dörfer mehrfach angreifen: "),
+      select_doubleattack);
+
       //Foot
       $("<button>").text("Start/Stop").click(function(){
           toggleRunning();
@@ -360,6 +447,8 @@ $(function(){
       $("<button>").text("Anleitung").click(function(){
           window.open(_Anleitungslink, '_blank');
       }).appendTo(settingsDiv);
+      /*{"units":"no_archer",
+      "primary_button":"c","secondary_button":"a","double_attack":"false"};*/
   }
   function toggleRunning(){
       var config = JSON.parse(storageGet("config"));
