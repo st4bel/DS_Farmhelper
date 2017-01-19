@@ -17,7 +17,7 @@ var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
 var _config = {"running":"false","debug":"true","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextline_fast":25,"nextvillage":1000,
-"primary_button":"c","lastvisit_button":"a","doubleattack_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20};
+"primary_button":"c","lastvisit_button":"a","doubleattack_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz","axe=100"};
 var _units = {
     "normal":["spear","sword","axe","archer","spy","light","marcher","heavy"],
     "no_archer":["spear","sword","axe","spy","light","heavy"]
@@ -191,6 +191,7 @@ $(function(){
     },percentage_randomInterval(config.nextvillage,5))
   }
   function destroyWall(row,x){
+    var config = JSON.parse(storageGet("config"));
     var link = $("a",$("td",row).eq(11)).attr("href");
     var target = link.substring(link.indexOf("target=")+7,link.indexOf("&",link.indexOf("target=")+7))
     var wall_atts = JSON.parse(storageGet("wall_atts"));
@@ -201,7 +202,7 @@ $(function(){
     }
     var a = -3.066;var b = 3.832; var c = -0.181;var d = 0.0284;
     var ramms = Math.ceil(a+b*x+c*Math.pow(x,2)+d*Math.pow(x,3))+1;
-    window.open(link+"axe=100&ram="+ramms+"&farm=1",'_blank');
+    window.open(link+config.begleitschutz+"&ram="+ramms+"&farm=1",'_blank');
     return;
   }
   function unitCheck(button){
@@ -466,6 +467,14 @@ $(function(){
         config.max_secondary = parseInt($(this).val());
         storageSet("config",JSON.stringify(config));
       });
+      var input_begleitschutz = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).begleitschutz)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.begleitschutz = $(this).val();
+        storageSet("config",JSON.stringify(config));
+      });
       //"primary_button":"c","lastvisit_button":"a","doubleattack_button":"a",
       //"notenoughtroops_button":"a","cantpressprim_button":"a","double_attack":"false"
       var select_primary = $("<select>")
@@ -623,6 +632,9 @@ $(function(){
       $("<span>").text("'Spezialbuttons' nur x mal am Stück benutzen: "),
       input_max_secondary);
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Begleitschutz Wall zerstören:"))).appendTo(settingsTable);
+      addRow(
+      $("<span>").text("In der Form 'engl. Kurzname'=Anzahl Bsp: 'axe=100' oder 'axe=100&spy=1' .."),
+      input_begleitschutz);
 
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Vorlage erstellen:"))).appendTo(settingsTable);
       addRow(
