@@ -37,10 +37,10 @@ $(function(){
   storageSet("templates",storageGet("templates","{}"));
   storageSet("wall_atts",storageGet("wall_atts","{}"));
   update_config();
-  var autoRun = JSON.parse(storageGet("config")).running==="true";
   add_log("init_UI...");
   init_UI();
-  if(autoRun){
+  checkBotProtection();
+  if(JSON.parse(storageGet("config")).running==="true"){
       if(getPageAttribute("screen")=="am_farm"){
           onFarm();
       }else if(getPageAttribute("screen")=="place"&&getPageAttribute("try")=="confirm"){
@@ -108,7 +108,7 @@ $(function(){
           }else if(config.double_attack!=="false"){
             add_log("attacked, doubleattack not false!");
             if(unitCheck(config.double_attack)&&canPress(row,config.double_attack)){
-              add_log("double_attack!")
+              add_log("double_attack!");
               press(row,config.double_attack,"lime");
               secondary_counter=0;
               setTimeout(function(){
@@ -122,7 +122,7 @@ $(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
             }else{
-              add_log("nothing, after double!")
+              add_log("nothing, after double!");
               if(config.notenoughtroops_button=="nextvillage"){
                 nextvillage();
               }
@@ -140,21 +140,21 @@ $(function(){
             },percentage_randomInterval(config.nextline_fast,5));
           }
         }else if(unitCheck(config.lastvisit_button)){
-          add_log("last_visit not ok!")
+          add_log("last_visit not ok!");
           press(row,config.lastvisit_button,"orange");
           secondary_counter++;
           setTimeout(function(){
             tick();
           },percentage_randomInterval(config.nextline,5));
         }else{
-          add_log("last_visit not ok, no troops")
+          add_log("last_visit not ok, no troops");
           setTimeout(function(){
             $("td",row).css("background-color","red");
             tick();
           },percentage_randomInterval(config.nextline,5));
         }
       }else{
-        add_log("too far.")
+        add_log("too far.");
         setTimeout(function(){
           add_alert("next village / zu weit");
           nextvillage();
@@ -163,7 +163,7 @@ $(function(){
     })();
   }
   function closePlace(){
-    add_log("checking, if window has to be closed..")
+    add_log("checking, if window has to be closed..");
     var wall_atts=JSON.parse(storageGet("wall_atts"));
     var con = "";
     for(var id in wall_atts){
@@ -173,12 +173,12 @@ $(function(){
     }
     if(con!=""){
       delete wall_atts[con];
-      add_log("closing window")
+      add_log("closing window");
       window.close();
     }
   }
   function onPlace(){
-    add_log("trying to send att...")
+    add_log("trying to send att...");
     var wall_atts = JSON.parse(storageGet("wall_atts"));
     wall_atts[getPageAttribute("target")]=Date.now();
     wall_atts[getPageAttribute("village")]=Date.now();
@@ -308,6 +308,16 @@ $(function(){
           sum += unit.checked ? unit.count : 0;
       }
       return sum;
+  }
+  function checkBotProtection(){
+    if($(".rc-anchor").length!=0){
+      var config = JSON.parse(storageGet("config"));
+      config.running="false";
+      storageSet("config",JSON.stringify(config));
+      $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn wegen Botschutz gestoppt. "+(new Date())));
+    }else{
+      add_log("no bot protection found ...");
+    }
   }
   function init_UI(){
       //create UI_link
