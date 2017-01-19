@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        DS_Farm_Reborn
 // @namespace   de.die-staemme
-// @version     0.10
+// @version     0.2
 // @description This script is automatically pressing the A/B/C button(s) on the farm assistent page. Reworked version of DS_Farmhelper.
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -13,16 +13,13 @@
 // ==/UserScript==
 
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
-var _version = "0.1";
+var _version = "0.2";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
-var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":24,"max_wall":20,"nextline":200,"nextline_fast":25,"nextvillage":1000,
+var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,
 "primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100"};
-/*
- * Mode: c: no spy button? to old button?
- * Mode: a/b, wenn truppen leer secondary
- */
+
 $(function(){
   var storage = localStorage;
   var storagePrefix="Farm_r_";
@@ -177,7 +174,7 @@ $(function(){
     if(con!=""){
       delete wall_atts[con];
       add_log("closing window")
-      //window.close();
+      window.close();
     }
   }
   function onPlace(){
@@ -188,7 +185,7 @@ $(function(){
     storageSet("wall_atts",JSON.stringify(wall_atts));
     setTimeout(function(){
       add_log("sending...");
-      //$("#target_attack").click();
+      $("#target_attack").click();
     },percentage_randomInterval(JSON.parse(storageGet("config")).nextvillage,5));
   }
   function onConfirm(){
@@ -676,15 +673,12 @@ $(function(){
         toggleRunning();
       });
   }
-  function changeTemplate(){
-
-  }
   function toggleRunning(){
       var config = JSON.parse(storageGet("config"));
       config.running = ""+(config.running==="false");
       add_log("running set to "+config.running);
       storageSet("config",JSON.stringify(config));
-      if(config.running==="true"){location.reload();}
+      if(config.running==="true"&&config.debug!=="false"){location.reload();}
   }
   function getSymbolStatus(){
       if(JSON.parse(storageGet("config")).running==="true"){
