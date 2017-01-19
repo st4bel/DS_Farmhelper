@@ -678,7 +678,7 @@ $(function(){
       config.running = ""+(config.running==="false");
       add_log("running set to "+config.running);
       storageSet("config",JSON.stringify(config));
-      if(config.running==="true"||config.debug==="true"){location.reload();}
+      if(config.running==="true"||config.debug==="false"){location.reload();}
   }
   function getSymbolStatus(){
       if(JSON.parse(storageGet("config")).running==="true"){
