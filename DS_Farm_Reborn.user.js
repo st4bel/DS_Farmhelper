@@ -40,7 +40,8 @@ $(function(){
   storageSet("config",storageGet("config",JSON.stringify(_config)));
   //storageSet("config",JSON.stringify(_config));
   storageSet("sec_counter",storageGet("sec_counter",0));
-  storageSet("templates",storageGet("templates","{}"))
+  storageSet("templates",storageGet("templates","{}"));
+  storageSet("wall_atts",storageGet("wall_atts","{}"));
 
   var autoRun = JSON.parse(storageGet("config")).running==="true";
   add_log("init_UI...");
@@ -48,6 +49,12 @@ $(function(){
   if(autoRun){
       if(getPageAttribute("screen")=="am_farm"){
           onFarm();
+      }else if(getPageAttribute("screen")=="place"&&getPageAttribute("try")==confirm){
+        onConfirm();
+      }else if(getPageAttribute("screen")=="place"&&getPageAttribute("farm")=="1"){
+        onPlace();
+      }else if(getPageAttribute("screen")=="place"){
+        closePlace();
       }
   }
   function onFarm(){
@@ -73,6 +80,9 @@ $(function(){
       var row = rows[current];
       var distance = parseInt($("td",row).eq(7).text());
       var wall = $("td",row).eq(6).text()!="?" ? parseInt($("td",row).eq(6).text()) : 0;
+      if(wall>config.max_wall){
+        destroyWall(row,wall);
+      }
       var last_visit = getLastVisit(row);
       add_log("last_visit "+last_visit);
       //cancel if to far
@@ -152,6 +162,47 @@ $(function(){
         },percentage_randomInterval(config.nextvillage,5));
       }
     })();
+  }
+  function closePlace(){
+    var wall_atts=JSON.parse(storageGet("wall_atts"));
+    var con = "";
+    for(var id in wall_atts){
+      if(id==getPageAttribute("village")){
+        con=id;
+      }
+    }
+    if(con!=""){
+      delete wall_atts[con];
+      window.close();
+    }
+  }
+  function onPlace(){
+    var wall_atts = JSON.parse(storageGet("wall_atts"));
+    wall_atts[getPageAttribute("target")]=Date.now();
+    wall_atts[getPageAttribute("village")]=Date.now();
+    storageSet("wall_atts",JSON.stringify(wall_atts));
+    setTimeout(function(){
+      $("#target_attack").click();
+    },percentage_randomInterval(config.nextvillage,5));
+  }
+  function onConfirm(){
+    setTimeout(function(){
+      $("#troops_confirm_go").click();
+    },percentage_randomInterval(config.nextvillage,5))
+  }
+  function destroyWall(row,x){
+    var link = $("a",$("td",row).eq(11)).attr("href");
+    var target = link.substring(link.indexOf("target=")+7,link.indexOf("&",link.indexOf("target=")+7))
+    var wall_atts = JSON.parse(storageGet("wall_atts"));
+    for(var id in wall_atts){
+      if(target==id&& (wall_atts[id] + 8.64*Math.pow(10,7))> Date.now() ){
+        return;
+      }
+    }
+    var a = -3.066;var b = 3.832; var c = -0.181;var d = 0.0284;
+    var ramms = Math.ceil(a+b*x+c*Math.pow(x,2)+d*Math.pow(x,3))+1;
+    window.open(link+"axe=100&ram="+ramms+"&farm=1",'_blank');
+    return;
   }
   function unitCheck(button){
     //returns true false
@@ -600,8 +651,13 @@ $(function(){
       $("<button>").text("Anleitung").click(function(){
           window.open(_Anleitungslink, '_blank');
       }).appendTo(settingsDiv);
-      /*{"units":"no_archer",
-      "primary_button":"c","secondary_button":"a","double_attack":"false"};*/
+
+      //UI out of popup:
+
+      $("<button>").text("Start/Stop").appendTo($("h2").eq(0))
+      .click(function(){
+        toggleRunning();
+      });
   }
   function changeTemplate(){
 
