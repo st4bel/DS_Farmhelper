@@ -189,9 +189,10 @@ $(function(){
     },percentage_randomInterval(JSON.parse(storageGet("config")).nextvillage,5));
   }
   function onConfirm(){
-    add_log("confirming...")
+    add_log("confirming...");
     setTimeout(function(){
-      $("#troops_confirm_go").click();
+      add_log("confirmed");
+      $("#troop_confirm_go").click();
     },percentage_randomInterval(JSON.parse(storageGet("config")).nextvillage,5));
   }
   function destroyWall(row,x){
