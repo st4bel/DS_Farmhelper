@@ -17,7 +17,7 @@ var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
 var _config = {"running":"false","debug":"true","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":-1,"max_last_visit":-1,"max_wall":20,"nextline":200,"nextline_fast":25,"nextvillage":1000,
-"primary_button":"c","lastvisit_button":"a","doubleattack_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz","axe=100"};
+"primary_button":"c","lastvisit_button":"a","doubleattack_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100"};
 var _units = {
     "normal":["spear","sword","axe","archer","spy","light","marcher","heavy"],
     "no_archer":["spear","sword","axe","spy","light","heavy"]
@@ -188,12 +188,12 @@ $(function(){
   function onConfirm(){
     setTimeout(function(){
       $("#troops_confirm_go").click();
-    },percentage_randomInterval(config.nextvillage,5))
+    },percentage_randomInterval(config.nextvillage,5));
   }
   function destroyWall(row,x){
     var config = JSON.parse(storageGet("config"));
     var link = $("a",$("td",row).eq(11)).attr("href");
-    var target = link.substring(link.indexOf("target=")+7,link.indexOf("&",link.indexOf("target=")+7))
+    var target = link.substring(link.indexOf("target=")+7,link.indexOf("&",link.indexOf("target=")+7));
     var wall_atts = JSON.parse(storageGet("wall_atts"));
     for(var id in wall_atts){
       if(target==id&& (wall_atts[id] + 8.64*Math.pow(10,7))> Date.now() ){
@@ -546,7 +546,7 @@ $(function(){
         templates[input_template_name.val()].running=false;
         storageSet("templates",JSON.stringify(templates));
         $("<option>").text(input_template_name.val()).attr("value",input_template_name.val()).appendTo(select_template);
-      })
+      });
       var button_remove_template = $("<button>")
       .text("Löschen")
       .click(function(){
@@ -554,12 +554,12 @@ $(function(){
         if($("option:selected",select_template).val()!="false"){
           delete templates[$("option:selected",select_template).val()];
           storageSet("templates",JSON.stringify(templates));
-          $("option:selected",select_template).remove()
+          $("option:selected",select_template).remove();
           $("option[value=false]",select_debug).prop("selected",true);
         }else{
           alert("nicht löschbar..");
         }
-      })
+      });
       var button_take_template = $("<button>")
       .text("Übernehmen")
       .click(function(){
@@ -576,7 +576,7 @@ $(function(){
 
       var input_template_name = $("<input>")
       .attr("type","text")
-      .val("neuer Name")
+      .val("neuer Name");
 
       var select_template = $("<select>")
       .append($("<option>").text("-Auswählen-").attr("value","false"));
