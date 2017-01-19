@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        DS_Farm_Reborn
 // @namespace   de.die-staemme
-// @version     0.2.1
+// @version     0.2.2
 // @description This script is automatically pressing the A/B/C button(s) on the farm assistent page. Reworked version of DS_Farmhelper.
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -13,11 +13,11 @@
 // ==/UserScript==
 
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
-var _version = "0.2.1";
+var _version = "0.2.2";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
-var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,
+var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,"group_empty":10,
 "primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100"};
 
 $(function(){
@@ -65,7 +65,7 @@ $(function(){
       }
       current++;
       add_log("tick #"+current);
-      if(current > rows.length){
+      if(current >= rows.length-1){
         storageSet("sec_counter",secondary_counter);
         nextPage();
       }
@@ -246,28 +246,17 @@ $(function(){
     ts.setSeconds(last_visit[4]);
     return ts.getTime();
   }
-  function getPageNumber() {
-      var res=/&Farm_page=([0-9]*)&/.exec(location.search);
-      if(res==null){return 0;}
-      else return parseInt(res[1]);
-  }
-
-  //gibt die hoechste moegliche farmseite zurueck
-  function getMaxPageNumber() {
-      return $("div.body table tr:last-child a.paged-nav-item").length+1;
-  }
-
   //wechselt zur naechsten farmseite, oder wenn noetig, zum naechsten dorf
   function nextPage() {
-      var current=getPageNumber();
-      var total=getMaxPageNumber();
+      var current = parseInt(getPageAttribute("Farm_page"));
+      var total = parseInt($("a.paged-nav-item").last().text().replace(/ \[|\] /g,""));
 
       if(JSON.parse(storageGet("config")).max_farmpage != 0) {
           total = Math.min(JSON.parse(storageGet("config")).max_farmpage , total);
       }
       var nextVillage=false;
       current++;
-      if(current>=total) {
+      if(current>=total-1) {
         current=0;
         nextvillage();
       }else{
@@ -276,7 +265,15 @@ $(function(){
   }
   function nextvillage(){
     storageSet("sec_counter",0);
-    location.href=$("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href");
+    if($(".arrowRightGrey").length!=0&&$(".jump_link").length!=0){
+      var link = $("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href").replace(/(\&Farm\_page\=[0-9])/g,"&Farm_page=0");
+      location.href=link;
+    }else{
+      $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da die Gruppe leer ist. "+(new Date())));
+      setTimeout(function(){
+        nextvillage();
+      },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
+    }
   }
   function isAttacked(row) {
     return $("td:eq(3) img",row).length==1;
@@ -350,7 +347,7 @@ $(function(){
           "left":"50px",
           "top":"50px",
           "width":"500px",
-          "height":"600px",
+          "height":"700px",
           "background-color":"white",
           "border":"1px solid black",
           "border-radius":"5px",
@@ -453,6 +450,15 @@ $(function(){
       .on("input",function(){
         var config = JSON.parse(storageGet("config"));
         config.nextvillage = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
+
+      var input_group_empty = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).group_empty)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.group_empty = parseInt($(this).val());
         storageSet("config",JSON.stringify(config));
       });
 
@@ -604,11 +610,14 @@ $(function(){
       $("<span>").text("Pause zwischen Angriffen (in ms): "),
       input_nextline);
       addRow(
-      $("<span>").text("Pause, wenn kein Angriff geschickt wurde (in ms): "),
+      $("<span>").text("Pause, wenn kein Angriff geschickt wurde (rot, in ms): "),
       input_nextline_fast);
       addRow(
       $("<span>").text("Pause beim Dorfwechsel (in ms): "),
       input_nextvillage);
+      addRow(
+      $("<span>").text("Pause bei leerer Gruppe (in min): "),
+      input_group_empty);
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Angriffsmodus:"))).appendTo(settingsTable);
       addRow(
       $("<span>").text("maximaler Wall: "),
@@ -620,16 +629,16 @@ $(function(){
       $("<span>").text("Zeit seit letztem Angriff für primären Button in h: "),
       input_max_lastvisit);
       addRow(
-      $("<span>").text("primärer Angriffsbutton: "),
+      $("<span>").text("primärer Angriffsbutton (grün): "),
       select_primary);
       addRow(
-      $("<span>").text("Button, falls nicht genug Truppen für primären Angriff: "),
+      $("<span>").text("Button, falls nicht genug Truppen für primären Angriff (blau): "),
       select_notenoughtroops);
       addRow(
-      $("<span>").text("Button, falls letzter Besuch zu lange her: "),
+      $("<span>").text("Button, falls letzter Besuch zu lange her (orange): "),
       select_lastvisit_button);
       addRow(
-      $("<span>").text("Button, falls Dorf bereits angegriffen: "),
+      $("<span>").text("Button, falls Dorf bereits angegriffen (hellgrün): "),
       select_doubleattack);
       addRow(
       $("<span>").text("'Spezialbuttons' nur x mal am Stück benutzen: "),
