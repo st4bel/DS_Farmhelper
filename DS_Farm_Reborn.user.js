@@ -19,7 +19,7 @@ var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
 var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,"group_empty":10,
 "primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100"};
-
+_config.version = _version;
 $(function(){
   var storage = localStorage;
   var storagePrefix="Farm_r_";
@@ -36,7 +36,7 @@ $(function(){
   storageSet("sec_counter",storageGet("sec_counter",0));
   storageSet("templates",storageGet("templates","{}"));
   storageSet("wall_atts",storageGet("wall_atts","{}"));
-
+  update_config();
   var autoRun = JSON.parse(storageGet("config")).running==="true";
   add_log("init_UI...");
   init_UI();
@@ -266,7 +266,7 @@ $(function(){
   function nextvillage(){
     storageSet("sec_counter",0);
     if($(".arrowRightGrey").length!=0&&$(".jump_link").length!=0){
-      var link = $("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href").replace(/(\&Farm\_page\=[0-9])/g,"&Farm_page=0");
+      var link = $("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href").replace(/(\&Farm\_page\=[0-9]+)/g,"&Farm_page=0");
       location.href=link;
     }else{
       $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da die Gruppe leer ist. "+(new Date())));
@@ -735,5 +735,27 @@ $(function(){
     var params = document.location.search;
     var value = params.substring(params.indexOf(attribute+"=")+attribute.length+1,params.indexOf("&",params.indexOf(attribute+"=")) != -1 ? params.indexOf("&",params.indexOf(attribute+"=")) : params.length);
     return params.indexOf(attribute+"=")!=-1 ? value : "0";
+  }
+  function update_config(){
+    var config = JSON.parse(storageGet("config"));
+    var pattern = /[0-9]+\.[0-9]+/;
+    add_log("updating config from "+pattern.exec(config.version)+".x to "+pattern.exec(_version)+".x ...");
+    if(pattern.exec(config.version)!=pattern.exec(_version)){ // nur Versionen bis zur 2. ebene beachten...
+      for(var name in _config){
+        if(config[name]===undefined){
+          config[name]=_config[name];
+          add_log("successfully added entry: "+name+"="+config[name]);
+        }
+      }
+      for(var name in config){
+        if(_config[name]===undefined){
+          add_log("deleting entry: "+name+"="+config[name]);
+          delete config[name];
+          add_log("successfully deleted entry: "+name);
+        }
+      }
+      config.version=_version;
+      storageSet("config",JSON.stringify(config));
+    }
   }
 });
