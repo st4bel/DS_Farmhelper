@@ -17,12 +17,12 @@ var _version = "0.2.2";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
-var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,"group_empty":10,
+var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,"group_empty":10,"max_runtime":60,
 "primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100"};
 _config.version = _version;
 $(function(){
   var storage = localStorage;
-  var storagePrefix="Farm_r_";
+  var storagePrefix="Farm_r_v0.3_";
   //Speicherfunktionen
   function storageGet(key,defaultValue) {
       var value= storage.getItem(storagePrefix+key);
@@ -36,20 +36,29 @@ $(function(){
   storageSet("sec_counter",storageGet("sec_counter",0));
   storageSet("templates",storageGet("templates","{}"));
   storageSet("wall_atts",storageGet("wall_atts","{}"));
+  storageSet("last_pause",storageGet("last_pause",Date.now()));
   update_config();
   add_log("init_UI...");
   init_UI();
   checkBotProtection();
-  if(JSON.parse(storageGet("config")).running==="true"){
-      if(getPageAttribute("screen")=="am_farm"){
-          onFarm();
-      }else if(getPageAttribute("screen")=="place"&&getPageAttribute("try")=="confirm"){
-        onConfirm();
-      }else if(getPageAttribute("screen")=="place"&&getPageAttribute("farm")=="1"){
-        onPlace();
-      }else if(getPageAttribute("screen")=="place"){
-        closePlace();
-      }
+  if(storageGet("last_pause")+(JSON.parse(storageGet("config")).max_runtime*1000*60)<Date.now()){
+    $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da letzte Pause länger als "+JSON.parse(storageGet("config")).max_runtime+" min her. "+(new Date())));
+    setTimeout(function(){
+      location.reload();
+    },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
+  }else{
+    add_log("no pause needed");
+    if(JSON.parse(storageGet("config")).running==="true"){
+        if(getPageAttribute("screen")=="am_farm"){
+            onFarm();
+        }else if(getPageAttribute("screen")=="place"&&getPageAttribute("try")=="confirm"){
+          onConfirm();
+        }else if(getPageAttribute("screen")=="place"&&getPageAttribute("farm")=="1"){
+          onPlace();
+        }else if(getPageAttribute("screen")=="place"){
+          closePlace();
+        }
+    }
   }
   function onFarm(){
     add_log("onFarm...");
@@ -472,6 +481,15 @@ $(function(){
         storageSet("config",JSON.stringify(config));
       });
 
+      var input_max_runtime = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).max_runtime)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.max_runtime = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
+
       var input_max_wall = $("<input>")
       .attr("type","text")
       .val(JSON.parse(storageGet("config")).max_wall)
@@ -628,6 +646,9 @@ $(function(){
       addRow(
       $("<span>").text("Pause bei leerer Gruppe (in min): "),
       input_group_empty);
+      addRow(
+      $("<span>").text("Nach x min spätestens eine Pause einlegen (länge der Pause: Zeile darüber): "),
+      input_max_runtime);
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Angriffsmodus:"))).appendTo(settingsTable);
       addRow(
       $("<span>").text("maximaler Wall: "),
@@ -698,6 +719,7 @@ $(function(){
       config.running = ""+(config.running==="false");
       add_log("running set to "+config.running);
       storageSet("config",JSON.stringify(config));
+      storageSet("last_pause",Date.now());
       if(config.running==="true"||config.debug==="false"){location.reload();}
   }
   function getSymbolStatus(){
@@ -750,7 +772,6 @@ $(function(){
     var config = JSON.parse(storageGet("config"));
     var pattern = /[0-9]+\.[0-9]+/;
     add_log("updating config from "+pattern.exec(config.version)+".x to "+pattern.exec(_version)+".x ...");
-    if(pattern.exec(config.version)!=pattern.exec(_version)){ // nur Versionen bis zur 2. ebene beachten...
       for(var name in _config){
         if(config[name]===undefined){
           config[name]=_config[name];
@@ -766,6 +787,5 @@ $(function(){
       }
       config.version=_version;
       storageSet("config",JSON.stringify(config));
-    }
   }
 });
