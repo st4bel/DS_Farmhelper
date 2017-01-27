@@ -41,23 +41,23 @@ $(function(){
   add_log("init_UI...");
   init_UI();
   checkBotProtection();
-  if(storageGet("last_pause")+(JSON.parse(storageGet("config")).max_runtime*1000*60)<Date.now()){
-    $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da letzte Pause länger als "+JSON.parse(storageGet("config")).max_runtime+" min her. "+(new Date())));
-    setTimeout(function(){
-      location.reload();
-    },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
-  }else{
-    add_log("no pause needed");
-    if(JSON.parse(storageGet("config")).running==="true"){
-        if(getPageAttribute("screen")=="am_farm"){
-            onFarm();
-        }else if(getPageAttribute("screen")=="place"&&getPageAttribute("try")=="confirm"){
-          onConfirm();
-        }else if(getPageAttribute("screen")=="place"&&getPageAttribute("farm")=="1"){
-          onPlace();
-        }else if(getPageAttribute("screen")=="place"){
-          closePlace();
-        }
+  if(JSON.parse(storageGet("config")).running==="true"){
+    if(JSON.parse(storageGet("config")).max_runtime*1000*60<Date.now()-storageGet("last_pause")){
+      $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da letzte Pause länger als "+JSON.parse(storageGet("config")).max_runtime+" min her. "+(new Date())));
+      setTimeout(function(){
+        location.reload();
+      },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
+    }else{
+      add_log("no pause needed, last pause: "+Math.round((Date.now()-storageGet("last_pause"))/60000)+" min ago, min "+JSON.parse(storageGet("config")).max_runtime);
+      if(getPageAttribute("screen")=="am_farm"){
+        onFarm();
+      }else if(getPageAttribute("screen")=="place"&&getPageAttribute("try")=="confirm"){
+        onConfirm();
+      }else if(getPageAttribute("screen")=="place"&&getPageAttribute("farm")=="1"){
+        onPlace();
+      }else if(getPageAttribute("screen")=="place"){
+        closePlace();
+      }
     }
   }
   function onFarm(){
@@ -297,7 +297,7 @@ $(function(){
     }else{
       $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da die Gruppe leer ist. "+(new Date())));
       setTimeout(function(){
-        nextvillage();
+        location.reload();
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
     }
   }
