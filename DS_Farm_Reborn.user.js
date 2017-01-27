@@ -13,12 +13,12 @@
 // ==/UserScript==
 
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
-var _version = "0.3";
+var _version = "0.3.1";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
 var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,"group_empty":10,"max_runtime":60,
-"primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100"};
+"primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100","what_secondary":"only_red"};
 _config.version = _version;
 $(function(){
   var storage = localStorage;
@@ -73,13 +73,14 @@ $(function(){
         return;
       }
       current++;
-      add_log("tick #"+current);
+      add_log(secondary_counter+" tick #"+current);
       if(current >= rows.length-1){
         storageSet("sec_counter",secondary_counter);
         nextPage();
       }
       if(secondary_counter>config.max_secondary){
         nextvillage();
+        return;
       }
       var row = rows[current];
       var distance = parseInt($("td",row).eq(7).text());
@@ -104,7 +105,9 @@ $(function(){
             }else if(unitCheck(config.notenoughtroops_button)&&canPress(row,config.notenoughtroops_button)){
               add_log("notenough after prim!");
               press(row,config.notenoughtroops_button,"blue");
-              secondary_counter++;
+              if(config.what_secondary!="only_red"){
+                  secondary_counter++;
+              }
               setTimeout(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
@@ -126,7 +129,9 @@ $(function(){
             }else if(unitCheck(config.notenoughtroops_button)&&canPress(row,config.notenoughtroops_button)){
               add_log("notenough, after double!");
               press(row,config.notenoughtroops_button,"blue");
-              secondary_counter++;
+              if(config.what_secondary!="only_red"){
+                  secondary_counter++;
+              }
               setTimeout(function(){
                 tick();
               },percentage_randomInterval(config.nextline,5));
@@ -151,12 +156,24 @@ $(function(){
         }else if(unitCheck(config.lastvisit_button)){
           add_log("last_visit not ok!");
           press(row,config.lastvisit_button,"orange");
-          secondary_counter++;
+          if(config.what_secondary!="only_red"){
+              secondary_counter++;
+          }
+          setTimeout(function(){
+            tick();
+          },percentage_randomInterval(config.nextline,5));
+        }else if(unitCheck(config.notenoughtroops_button)){
+          add_log("last_visit not ok!, not enough prim");
+          press(row,config.notenoughtroops_button,"blue");
+          if(config.what_secondary!="only_red"){
+              secondary_counter++;
+          }
           setTimeout(function(){
             tick();
           },percentage_randomInterval(config.nextline,5));
         }else{
           add_log("last_visit not ok, no troops");
+          secondary_counter++;
           setTimeout(function(){
             $("td",row).css("background-color","red");
             tick();
@@ -274,7 +291,7 @@ $(function(){
   }
   function nextvillage(){
     storageSet("sec_counter",0);
-    if($(".arrowRightGrey").length!=0&&$(".jump_link").length!=0){
+    if($(".arrowRightGrey").length==0){
       var link = $("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href").replace(/(\&Farm\_page\=[0-9]+)/g,"&Farm_page=0");
       location.href=link;
     }else{
@@ -436,6 +453,7 @@ $(function(){
         storageSet("config",JSON.stringify(config));
       });
 
+
       var input_max_wall = $("<input>")
       .attr("type","text")
       .val(JSON.parse(storageGet("config")).max_wall)
@@ -490,14 +508,7 @@ $(function(){
         storageSet("config",JSON.stringify(config));
       });
 
-      var input_max_wall = $("<input>")
-      .attr("type","text")
-      .val(JSON.parse(storageGet("config")).max_wall)
-      .on("input",function(){
-        var config = JSON.parse(storageGet("config"));
-        config.max_wall = parseInt($(this).val());
-        storageSet("config",JSON.stringify(config));
-      });
+
       var input_max_secondary = $("<input>")
       .attr("type","text")
       .val(JSON.parse(storageGet("config")).max_secondary)
@@ -506,6 +517,15 @@ $(function(){
         config.max_secondary = parseInt($(this).val());
         storageSet("config",JSON.stringify(config));
       });
+      var select_what_secondary = $("<select>")
+      .append($("<option>").text("nur rote").attr("value","only_red"))
+      .append($("<option>").text("alles außer grün/hellgrün").attr("value","all_but_green"))
+      .change(function(){
+        var config = JSON.parse(storageGet("config"));
+        config.what_secondary = $("option:selected",$(this)).val();
+        storageSet("config",JSON.stringify(config));
+      });
+      $("option[value="+JSON.parse(storageGet("config")).what_secondary+"]",select_what_secondary).prop("selected",true);
       var input_begleitschutz = $("<input>")
       .attr("type","text")
       .val(JSON.parse(storageGet("config")).begleitschutz)
@@ -671,9 +691,13 @@ $(function(){
       addRow(
       $("<span>").text("Button, falls Dorf bereits angegriffen (hellgrün): "),
       select_doubleattack);
+      $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Weitere Abbruchbedingungen:"))).appendTo(settingsTable);
       addRow(
-      $("<span>").text("'Spezialbuttons' nur x mal am Stück benutzen: "),
+      $("<span>").text("'Ausweichbuttons' nur x mal am Stück benutzen: "),
       input_max_secondary);
+      addRow(
+      $("<span>").text("'Ausweichbuttons' sind: "),
+      select_what_secondary);
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Begleitschutz Wall zerstören:"))).appendTo(settingsTable);
       addRow(
       $("<span>").text("In der Form 'engl. Kurzname'=Anzahl Bsp: 'axe=100' oder 'axe=100&spy=1' .."),
@@ -706,7 +730,11 @@ $(function(){
       $("<button>").text("Anleitung").click(function(){
           window.open(_Anleitungslink, '_blank');
       }).appendTo(settingsDiv);
-
+      if(JSON.parse(storageGet("config")).debug!="false"){
+        $("<button>").text("getLocalStorage").click(function(){
+            add_log(storageGet("config"));
+        }).appendTo(settingsDiv);
+      }
       //UI out of popup:
 
       $("<button>").text("Start/Stop").appendTo($("h2").eq(0))
