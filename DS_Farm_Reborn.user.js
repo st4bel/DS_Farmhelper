@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        DS_Farm_Reborn
 // @namespace   de.die-staemme
-// @version     0.3.1
+// @version     0.3.2
 // @description This script is automatically pressing the A/B/C button(s) on the farm assistent page. Reworked version of DS_Farmhelper.
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -13,7 +13,7 @@
 // ==/UserScript==
 
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
-var _version = "0.3.1";
+var _version = "0.3.2";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
@@ -37,6 +37,7 @@ $(function(){
   storageSet("templates",storageGet("templates","{}"));
   storageSet("wall_atts",storageGet("wall_atts","{}"));
   storageSet("last_pause",storageGet("last_pause",Date.now()));
+  storageSet("jumplink",storageGet("jumplink","false"));
   update_config();
   add_log("init_UI...");
   init_UI();
@@ -297,14 +298,18 @@ $(function(){
   }
   function nextvillage(){
     storageSet("sec_counter",0);
-    if($(".arrowRightGrey").length==0){
-      var link = $("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href").replace(/(\&Farm\_page\=[0-9]+)/g,"&Farm_page=0");
-      location.href=link;
-    }else{
+    if((storageGet("jumplink")=="true"&&$(".jump_link").length!=0)||$(".arrowRightGrey").length!=0){
+      storageSet("jumplink","false");
       $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da die Gruppe leer ist. "+(new Date())));
       setTimeout(function(){
         location.reload();
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
+    }else{
+      if($(".jump_link").length!=0){
+        storageSet("jumplink","true");
+      }
+      var link = $("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href").replace(/(\&Farm\_page\=[0-9]+)/g,"&Farm_page=0");
+      location.href=link;
     }
   }
   function isAttacked(row) {
