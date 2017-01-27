@@ -216,10 +216,16 @@ $(function(){
   }
   function onConfirm(){
     add_log("confirming...");
-    setTimeout(function(){
-      add_log("confirmed");
-      $("#troop_confirm_go").click();
-    },percentage_randomInterval(JSON.parse(storageGet("config")).nextvillage,5));
+    var wall_atts = JSON.parse(storageGet("wall_atts"));
+    if(5000>Date.now()-wall_atts[getPageAttribute("village")]){
+      setTimeout(function(){
+        add_log("confirmed");
+        $("#troop_confirm_go").click();
+      },percentage_randomInterval(JSON.parse(storageGet("config")).nextvillage,5));
+    }else{
+      add_log("no need to confirm");
+    }
+
   }
   function destroyWall(row,x){
     var config = JSON.parse(storageGet("config"));
