@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        DS_Farm_Reborn
 // @namespace   de.die-staemme
-// @version     0.3
+// @version     0.3.1
 // @description This script is automatically pressing the A/B/C button(s) on the farm assistent page. Reworked version of DS_Farmhelper.
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -743,7 +743,7 @@ $(function(){
       }
       //UI out of popup:
 
-      $("<button>").text("Start/Stop").appendTo($("h2").eq(0))
+      $("<button>").text("Farm: Start/Stop").appendTo($("h2").eq(0))
       .click(function(){
         toggleRunning();
       });
