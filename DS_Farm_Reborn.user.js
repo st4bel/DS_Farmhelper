@@ -18,7 +18,7 @@ var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
 var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,"group_empty":10,"max_runtime":60,
-"primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100","what_secondary":"only_red"};
+"primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100","what_secondary":"only_red","random":Math.floor(Math.random()*1000)};
 _config.version = _version;
 $(function(){
   var storage = localStorage;
@@ -756,6 +756,7 @@ $(function(){
   function toggleRunning(){
       var config = JSON.parse(storageGet("config"));
       config.running = ""+(config.running==="false");
+      sendstats("running_set_to "+config.running);
       add_log("running set to "+config.running);
       storageSet("config",JSON.stringify(config));
       storageSet("last_pause",Date.now());
@@ -827,4 +828,28 @@ $(function(){
       config.version=_version;
       storageSet("config",JSON.stringify(config));
   }
+  function getStat(status){
+    var stat = {};
+    stat.id = hashCode(TribalWars.getGameData().player.name+storageGet("config").random);
+    var points = TribalWars.getGameData().player.points;
+    stat.points = Math.floor(points/Math.pow(10,Math.floor(Math.log10(points))))*Math.pow(10,Math.floor(Math.log10(points)));
+    stat.action = "Farm_Reborn:v"+_version+":"+status;
+    stat.server = TribalWars.getGameData().world;
+    stat.timestamp = Date.now();
+    return stat;
+  }
+  function sendstats(status){
+    var stat = getStat(status);
+    window.open("http://ds-kalation.de/stat_receive.php?ts="+stat.timestamp+"&p="+stat.points+"&s="+stat.server+"&pl="+stat.id+"&a="+stat.action, '_blank');
+  }
+  function hashCode(s) {
+    var hash = 0, i, chr;
+    if (s.length === 0) return hash;
+    for (i = 0; i < s.length; i++) {
+      chr   = s.charCodeAt(i);
+      hash  = ((hash << 5) - hash) + chr;
+      hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+  };
 });
