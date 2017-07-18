@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        DS_Farm_Reborn
 // @namespace   de.die-staemme
-// @version     0.3.2
+// @version     0.3.3 Hotfix
 // @description This script is automatically pressing the A/B/C button(s) on the farm assistent page. Reworked version of DS_Farmhelper.
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -13,7 +13,7 @@
 // ==/UserScript==
 
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
-var _version = "0.3.2";
+var _version = "0.3.3";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
@@ -64,7 +64,7 @@ $(function(){
   function onFarm(){
     add_log("onFarm...");
     var rows = $("div.body > table tr").slice(1);
-    var current = -1;
+    var current = 0;
     var config = JSON.parse(storageGet("config"));
     var secondary_counter=storageGet("sec_counter");
     (function tick(){
