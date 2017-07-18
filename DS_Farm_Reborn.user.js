@@ -22,7 +22,7 @@ var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":
 _config.version = _version;
 $(function(){
   var storage = localStorage;
-  var storagePrefix="Farm_r_v0.3_";
+  var storagePrefix="Farm_r_v0.4_";
   //Speicherfunktionen
   function storageGet(key,defaultValue) {
       var value= storage.getItem(storagePrefix+key);
