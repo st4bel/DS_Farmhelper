@@ -18,7 +18,7 @@ var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
 var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,"group_empty":10,"max_runtime":60,
-"primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100","what_secondary":"only_red","random":Math.floor(Math.random()*1000)};
+"primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100","what_secondary":"only_red","one_village":"false","random":Math.floor(Math.random()*1000)};
 _config.version = _version;
 $(function(){
   var storage = localStorage;
@@ -298,18 +298,24 @@ $(function(){
   }
   function nextvillage(){
     storageSet("sec_counter",0);
-    if((storageGet("jumplink")=="true"&&$(".jump_link").length!=0)||$(".arrowRightGrey").length!=0){
-      storageSet("jumplink","false");
-      $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da die Gruppe leer ist. "+(new Date())));
+    if(JSON.parse(storageGet("config")).one_village=="true"){
       setTimeout(function(){
         location.reload();
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
     }else{
-      if($(".jump_link").length!=0){
-        storageSet("jumplink","true");
+      if((storageGet("jumplink")=="true"&&$(".jump_link").length!=0)||$(".arrowRightGrey").length!=0){
+        storageSet("jumplink","false");
+        $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da die Gruppe leer ist. "+(new Date())));
+        setTimeout(function(){
+          location.reload();
+        },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
+      }else{
+        if($(".jump_link").length!=0){
+          storageSet("jumplink","true");
+        }
+        var link = $("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href").replace(/(\&Farm\_page\=[0-9]+)/g,"&Farm_page=0");
+        location.href=link;
       }
-      var link = $("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href").replace(/(\&Farm\_page\=[0-9]+)/g,"&Farm_page=0");
-      location.href=link;
     }
   }
   function isAttacked(row) {
@@ -605,6 +611,17 @@ $(function(){
       });
       $("option[value="+JSON.parse(storageGet("config")).debug+"]",select_debug).prop("selected",true);
 
+      var select_one_village = $("<select>")
+      .append($("<option>").text("Nein").attr("value","false"))
+      .append($("<option>").text("JA").attr("value","true"))
+      .change(function(){
+        var config = JSON.parse(storageGet("config"));
+        config.one_village = $("option:selected",$(this)).val();
+        storageSet("config",JSON.stringify(config));
+        add_log(storageGet("config"));
+      });
+      $("option[value="+JSON.parse(storageGet("config")).debug+"]",select_debug).prop("selected",true);
+
       var button_create_template = $("<button>")
       .text("Erstellen")
       .click(function(){
@@ -661,6 +678,9 @@ $(function(){
       addRow(
       $("<span>").text("Dorf-Traversierung: "),
       select_walk_dir);
+      addRow(
+      $("<span>").text("Nur ein Dorf: "),
+      select_one_village);
       addRow(
       $("<span>").text("Maximale Farmseite: "),
       input_max_farmpage);
