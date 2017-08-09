@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        DS_Farm_Reborn
 // @namespace   de.die-staemme
-// @version     0.4
+// @version     0.4.1
 // @description This script is automatically pressing the A/B/C button(s) on the farm assistent page. Reworked version of DS_Farmhelper.
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -13,7 +13,7 @@
 // ==/UserScript==
 
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
-var _version = "0.4";
+var _version = "0.4.1";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
@@ -299,6 +299,7 @@ $(function(){
   function nextvillage(){
     storageSet("sec_counter",0);
     if(JSON.parse(storageGet("config")).one_village=="true"){
+      add_log("reloading in ca. "+JSON.parse(storageGet("config")).group_empty+"min");
       setTimeout(function(){
         location.reload();
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
@@ -613,14 +614,14 @@ $(function(){
 
       var select_one_village = $("<select>")
       .append($("<option>").text("Nein").attr("value","false"))
-      .append($("<option>").text("JA").attr("value","true"))
+      .append($("<option>").text("Ja").attr("value","true"))
       .change(function(){
         var config = JSON.parse(storageGet("config"));
         config.one_village = $("option:selected",$(this)).val();
         storageSet("config",JSON.stringify(config));
         add_log(storageGet("config"));
       });
-      $("option[value="+JSON.parse(storageGet("config")).debug+"]",select_debug).prop("selected",true);
+      $("option[value="+JSON.parse(storageGet("config")).one_village+"]",select_one_village).prop("selected",true);
 
       var button_create_template = $("<button>")
       .text("Erstellen")
