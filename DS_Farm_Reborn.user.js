@@ -769,7 +769,7 @@ $(function(){
       }
       //UI out of popup:
 
-      $("<button>").text("Farm: Start/Stop").appendTo($("h2").eq(0))
+      $("<button>").text("Farm: Start/Stop").appendTo($("h3").eq(0))
       .click(function(){
         toggleRunning();
       });
