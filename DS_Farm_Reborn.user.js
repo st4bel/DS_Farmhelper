@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        DS_Farm_Reborn
 // @namespace   de.die-staemme
-// @version     0.4.1
+// @version     0.4.2
 // @description This script is automatically pressing the A/B/C button(s) on the farm assistent page. Reworked version of DS_Farmhelper.
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -13,7 +13,7 @@
 // ==/UserScript==
 
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
-var _version = "0.4.1";
+var _version = "0.4.2";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
@@ -50,34 +50,41 @@ $(function(){
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
     }else{
       add_log("no pause needed, last pause: "+Math.round((Date.now()-storageGet("last_pause"))/60000)+" min ago, min "+JSON.parse(storageGet("config")).max_runtime);
-      if(getPageAttribute("screen")=="am_farm"){
-        onFarm();
-      }else if(getPageAttribute("screen")=="place"&&getPageAttribute("try")=="confirm"){
-        onConfirm();
-      }else if(getPageAttribute("screen")=="place"&&getPageAttribute("farm")=="1"){
-        onPlace();
-      }else if(getPageAttribute("screen")=="place"){
-        closePlace();
-      }
+      setTimeout(function(){
+        if(getPageAttribute("screen")=="am_farm"){
+          onFarm();
+        }else if(getPageAttribute("screen")=="place"&&getPageAttribute("try")=="confirm"){
+          onConfirm();
+        }else if(getPageAttribute("screen")=="place"&&getPageAttribute("farm")=="1"){
+          onPlace();
+        }else if(getPageAttribute("screen")=="place"){
+          closePlace();
+        }
+      },300);
     }
   }
   function onFarm(){
     add_log("onFarm...");
+    var config = JSON.parse(storageGet("config"));
     var rows = $("div.body > table tr").slice(1);
     var current = 0;
-    var config = JSON.parse(storageGet("config"));
     var secondary_counter=storageGet("sec_counter");
+    //sleep(200);
     (function tick(){
       config = JSON.parse(storageGet("config"));
       if(config.running==="false") {
         add_log("Stopped");
         return;
       }
+      if(rows.length<=2){//no #plunderlist
+        add_alert("keine plunderlist");
+        nextvillage();
+      }
       current++;
       add_log(secondary_counter+" tick #"+current);
       if(current >= rows.length-1){
         storageSet("sec_counter",secondary_counter);
-        nextPage();
+        //nextPage();
       }
       if(secondary_counter>config.max_secondary){
         nextvillage();
@@ -139,6 +146,7 @@ $(function(){
             }else{
               add_log("nothing, after double!");
               if(config.notenoughtroops_button=="nextvillage"){
+                add_log("next village after not enough troops")
                 nextvillage();
               }
               secondary_counter++;
@@ -182,10 +190,13 @@ $(function(){
         }
       }else{
         add_log("too far.");
-        setTimeout(function(){
-          add_alert("next village / zu weit");
-          nextvillage();
-        },percentage_randomInterval(config.nextvillage,5));
+        nextvillage();
+        return
+        //nextvillage();
+        //setTimeout(function(){
+        //  add_alert("next village / zu weit");
+        //  nextvillage();
+        //},percentage_randomInterval(config.nextvillage,5));
       }
     })();
   }
@@ -281,22 +292,24 @@ $(function(){
   }
   //wechselt zur naechsten farmseite, oder wenn noetig, zum naechsten dorf
   function nextPage() {
-      var current = parseInt(getPageAttribute("Farm_page"));
-      var total = parseInt($("a.paged-nav-item").last().text().replace(/ \[|\] /g,""));
-
-      if(JSON.parse(storageGet("config")).max_farmpage != 0) {
-          total = Math.min(JSON.parse(storageGet("config")).max_farmpage , total);
-      }
-      var nextVillage=false;
-      current++;
-      if(current>=total-1) {
-        current=0;
-        nextvillage();
-      }else{
-        location.href="/game.php?Farm_page="+current+"&screen=am_farm";
-      }
+    add_log("nextpage()")
+    var current = parseInt(getPageAttribute("Farm_page"));
+    var total = parseInt($("a.paged-nav-item").last().text().replace(/ \[|\] /g,""));
+    add_log("current: "+current+"; total: "+total)
+    if(JSON.parse(storageGet("config")).max_farmpage != 0) {
+        total = Math.min(JSON.parse(storageGet("config")).max_farmpage , total);
+    }
+    var nextVillage=false;
+    current++;
+    if(current>=total-1) {
+      current=0;
+      nextvillage();
+    }else{
+      location.href="/game.php?Farm_page="+current+"&screen=am_farm";
+    }
   }
   function nextvillage(){
+    add_log("nextvillage()")
     storageSet("sec_counter",0);
     if(JSON.parse(storageGet("config")).one_village=="true"){
       add_log("reloading in ca. "+JSON.parse(storageGet("config")).group_empty+"min");
@@ -304,7 +317,9 @@ $(function(){
         location.reload();
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
     }else{
+      add_log("!one_village")
       if((storageGet("jumplink")=="true"&&$(".jump_link").length!=0)||$(".arrowRightGrey").length!=0){
+        add_log("kein jumplink")
         storageSet("jumplink","false");
         $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da die Gruppe leer ist. "+(new Date())));
         setTimeout(function(){
@@ -312,12 +327,15 @@ $(function(){
         },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
       }else{
         if($(".jump_link").length!=0){
+          add_log("jumplink gefunden")
           storageSet("jumplink","true");
         }
         var link = $("#village_switch_"+JSON.parse(storageGet("config")).walk_dir).attr("href").replace(/(\&Farm\_page\=[0-9]+)/g,"&Farm_page=0");
+        add_log("wechsle dorf auf: "+link)
         location.href=link;
       }
     }
+    add_log("what")
   }
   function isAttacked(row) {
     return $("td:eq(3) img",row).length==1;
@@ -800,6 +818,8 @@ $(function(){
     if(JSON.parse(storageGet("config")).debug==="true"){
       var prefix = storagePrefix+timeConverter(Date.now())+" - ";
       alert(prefix+text);
+    }else{
+      add_log(text)
     }
   }
   function timeConverter(timestamp){
@@ -860,8 +880,8 @@ $(function(){
     return stat;
   }
   function sendstats(status){
-    var stat = getStat(status);
-    window.open("http://ds-kalation.de/stat_receive.php?ts="+stat.timestamp+"&p="+stat.points+"&s="+stat.server+"&pl="+stat.id+"&a="+stat.action, '_blank');
+    //var stat = getStat(status);
+    //window.open("http://ds-kalation.de/stat_receive.php?ts="+stat.timestamp+"&p="+stat.points+"&s="+stat.server+"&pl="+stat.id+"&a="+stat.action, '_blank');
   }
   function hashCode(s) {
     var hash = 0, i, chr;
@@ -873,4 +893,12 @@ $(function(){
     }
     return hash;
   };
+  function sleep(milliseconds) {
+  var start = new Date().getTime();
+    for (var i = 0; i < 1e7; i++) {
+      if ((new Date().getTime() - start) > milliseconds){
+        break;
+      }
+    }
+  }
 });
