@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        DS_Farm_Reborn
 // @namespace   de.die-staemme
-// @version     0.4.2
+// @version     0.4.3
 // @description This script is automatically pressing the A/B/C button(s) on the farm assistent page. Reworked version of DS_Farmhelper.
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -13,7 +13,7 @@
 // ==/UserScript==
 
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
-var _version = "0.4.2";
+var _version = "0.4.3";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
@@ -79,6 +79,7 @@ $(function(){
       if(rows.length<=2){//no #plunderlist
         add_alert("keine plunderlist");
         nextvillage();
+        return
       }
       current++;
       add_log(secondary_counter+" tick #"+current);
@@ -91,7 +92,13 @@ $(function(){
         return;
       }
       var row = rows[current];
+
       var distance = parseInt($("td",row).eq(7).text());
+      add_log("distance="+distance)
+      if(isNaN(distance)){
+        nextPage();
+        return
+      }
       var wall = $("td",row).eq(6).text()!="?" ? parseInt($("td",row).eq(6).text()) : 0;
       if(wall>config.max_wall){
         destroyWall(row,wall);
@@ -301,7 +308,7 @@ $(function(){
     }
     var nextVillage=false;
     current++;
-    if(current>=total-1) {
+    if(current>=total-1||isNaN(total)) {
       current=0;
       nextvillage();
     }else{
