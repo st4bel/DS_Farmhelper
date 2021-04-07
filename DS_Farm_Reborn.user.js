@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        DS_Farm_Reborn
 // @namespace   de.die-staemme
-// @version     0.4.3
+// @version     0.5.0
 // @description This script is automatically pressing the A/B/C button(s) on the farm assistent page. Reworked version of DS_Farmhelper.
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -13,16 +13,16 @@
 // ==/UserScript==
 
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
-var _version = "0.4.3";
+var _version = "0.5.0";
 var _Anleitungslink = "http://blog.ds-kalation.de/";
 var _UpdateLink = "https://github.com/st4bel/DS_Farmhelper/releases";
 
 var _config = {"running":"false","debug":"false","units":"no_archer","walk_dir":"right","max_farmpage":10,"max_distance":30,"max_last_visit":12,"max_wall":0,"nextline":200,"nextline_fast":25,"nextvillage":1000,"group_empty":10,"max_runtime":60,
-"primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100","what_secondary":"only_red","one_village":"false","random":Math.floor(Math.random()*1000)};
+"primary_button":"c","lastvisit_button":"a","notenoughtroops_button":"a","double_attack":"false","max_secondary":20,"begleitschutz":"axe=100","what_secondary":"only_red","one_village":"false","random":Math.floor(Math.random()*1000),"max_vill_use":0};
 _config.version = _version;
 $(function(){
   var storage = localStorage;
-  var storagePrefix="Farm_r_v0.4_";
+  var storagePrefix="Farm_r_v0.5_";
   //Speicherfunktionen
   function storageGet(key,defaultValue) {
       var value= storage.getItem(storagePrefix+key);
@@ -38,13 +38,23 @@ $(function(){
   storageSet("wall_atts",storageGet("wall_atts","{}"));
   storageSet("last_pause",storageGet("last_pause",Date.now()));
   storageSet("jumplink",storageGet("jumplink","false"));
+  storageSet("vill_use",storageGet("vill_use","{}")) // {vill_id : counter}
   update_config();
   add_log("init_UI...");
   init_UI();
   checkBotProtection();
   if(JSON.parse(storageGet("config")).running==="true"){
+
+    vill_use_bool = check_max_vill_use();
+
     if(JSON.parse(storageGet("config")).max_runtime*1000*60<Date.now()-storageGet("last_pause")){
       $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da letzte Pause länger als "+JSON.parse(storageGet("config")).max_runtime+" min her. "+(new Date())));
+      setTimeout(function(){
+        location.reload();
+      },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
+    } else if (!vill_use_bool) {
+      storageSet("vill_use","{}"); // reset counter
+      $("#content_value").prepend($("<div>").attr("class","error_box").text("Maximale Durchläufe errecht. Mache Paue für "+ JSON.parse(storageGet("config")).group_empty + " Minuten Pause.");
       setTimeout(function(){
         location.reload();
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
@@ -684,6 +694,14 @@ $(function(){
           alert("Bitte Vorlage zum Übernehmne Auswählen..");
         }
       });
+      var input_max_village_repetition = $("<input>")
+      .attr("type","text")
+      .val(JSON.parse(storageGet("config")).max_vill_use)
+      .on("input",function(){
+        var config = JSON.parse(storageGet("config"));
+        config.max_vill_use = parseInt($(this).val());
+        storageSet("config",JSON.stringify(config));
+      });
 
       var input_template_name = $("<input>")
       .attr("type","text")
@@ -710,6 +728,9 @@ $(function(){
       addRow(
       $("<span>").text("Maximale Farmseite: "),
       input_max_farmpage);
+      addRow(
+      $("<span>").text("Wie oft Dorf benutzen (stoppt nach x maligem Farmen aus Dorf; counter reset nach pause; 0 == inf): "),
+      input_max_village_repetition);
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Pausen:"))).appendTo(settingsTable);
       addRow(
       $("<span>").text("Pause zwischen Angriffen (in ms): "),
@@ -907,5 +928,32 @@ $(function(){
         break;
       }
     }
+  }
+  function get_current_village_id(){
+    return $("#village_switch_right").attr("href").split("village=")[1].split("&")[0].substring(1)
+  }
+  function update_village_use(vill_id){
+    vill_use = JSON.parse(storageGet("vill_use"));
+    if(getPageAttribute("screen") != "am_farm"){ // no update if not in farm manager page -> wall etc.
+      return vill_use[vill_id]
+    }
+    if(!vill_use[vill_id]){
+      vill_use[vill_id] = 1;
+    }else{
+      vill_use[vill_id]++;
+    }
+    storageSet("vill_use",JSON.stringify(vill_use));
+    return vill_use[vill_id]
+  }
+  function check_max_vill_use(){ // returns true if script should run
+    vill_id = get_current_village_id();
+    max_vill_use = JSON.parse(storageGet("config")).max_vill_use;
+    if(max_vill_use <= 0){ // return if disabled
+      add_log("No max village use set.");
+      return true;
+    }
+    current_use = update_village_use(vill_id);
+    add_log("max_vill_use: " + max_vill_use + "; current_use: " + current_use);
+    return current_use <= max_vill_use;
   }
 });
