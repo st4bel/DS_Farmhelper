@@ -54,7 +54,7 @@ $(function(){
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
     } else if (!vill_use_bool) {
       storageSet("vill_use","{}"); // reset counter
-      $("#content_value").prepend($("<div>").attr("class","error_box").text("Maximale Durchläufe errecht. Mache Paue für "+ JSON.parse(storageGet("config")).group_empty + " Minuten Pause.");
+      $("#content_value").prepend($("<div>").attr("class","error_box").text("Maximale Durchläufe errecht. Mache Paue für "+ JSON.parse(storageGet("config")).group_empty + " Minuten Pause."));
       setTimeout(function(){
         location.reload();
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
