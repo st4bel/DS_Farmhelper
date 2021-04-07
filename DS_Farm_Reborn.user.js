@@ -45,7 +45,7 @@ $(function(){
   checkBotProtection();
   if(JSON.parse(storageGet("config")).running==="true"){
 
-    vill_use_bool = check_max_vill_use();
+    var vill_use_bool = check_max_vill_use();
 
     if(JSON.parse(storageGet("config")).max_runtime*1000*60<Date.now()-storageGet("last_pause")){
       $("#content_value").prepend($("<div>").attr("class","error_box").text("Farmscript Reborn in Warteschleife, da letzte Pause länger als "+JSON.parse(storageGet("config")).max_runtime+" min her. "+(new Date())));
@@ -54,7 +54,7 @@ $(function(){
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
     } else if (!vill_use_bool) {
       storageSet("vill_use","{}"); // reset counter
-      $("#content_value").prepend($("<div>").attr("class","error_box").text("Maximale Durchläufe errecht. Mache Paue für "+ JSON.parse(storageGet("config")).group_empty + " Minuten Pause."));
+      $("#content_value").prepend($("<div>").attr("class","error_box").text("Maximale Durchläufe errecht. Mache für "+ JSON.parse(storageGet("config")).group_empty + " Minuten Pause." + (new Date())));
       setTimeout(function(){
         location.reload();
       },percentage_randomInterval(JSON.parse(storageGet("config")).group_empty*1000*60,5));
@@ -729,7 +729,7 @@ $(function(){
       $("<span>").text("Maximale Farmseite: "),
       input_max_farmpage);
       addRow(
-      $("<span>").text("Wie oft Dorf benutzen (stoppt nach x maligem Farmen aus Dorf; counter reset nach pause; 0 == inf): "),
+      $("<span>").text("Wie oft Dorf benutzen (pause nach x maligem Farmen aus Dorf; counter reset nach pause; 0 == inf): "),
       input_max_village_repetition);
       $("<tr>").append($("<td>").attr("colspan",2).append($("<span>").attr("style","font-weight: bold;").text("Pausen:"))).appendTo(settingsTable);
       addRow(
