@@ -827,6 +827,7 @@ $(function(){
       add_log("running set to "+config.running);
       storageSet("config",JSON.stringify(config));
       storageSet("last_pause",Date.now());
+      storageSet("vill_use","{}");
       if(config.running==="true"||config.debug==="false"){location.reload();}
   }
   function getSymbolStatus(){
